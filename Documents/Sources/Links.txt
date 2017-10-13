@@ -1,0 +1,2 @@
+https://en.wikipedia.org/wiki/Partially_observable_Markov_decision_process
+https://en.wikipedia.org/wiki/Reinforcement_learning
