@@ -222,12 +222,12 @@ public class AI implements MSWAgent
     
     private void branch(GameGraph tree, Node parentNode)
     {
-        // so I go 2nd
-        if(myOrder == LEFT)
+        // so I go 1st
+        if(myOrder == LEADER)
         {
             for(int i = 0; i < parentNode.MyHand.size(); i++)
             {
-                
+                // if 
             }
         }
     }
