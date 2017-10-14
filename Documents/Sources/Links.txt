@@ -1,2 +1,4 @@
 https://en.wikipedia.org/wiki/Partially_observable_Markov_decision_process
+http://www.pomdp.org
+
 https://en.wikipedia.org/wiki/Reinforcement_learning
