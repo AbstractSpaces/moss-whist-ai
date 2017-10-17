@@ -319,12 +319,17 @@ public class AI implements MSWAgent
         else
         {
             Card highestCard = hand[0];
+            Card highestCardNotTrump = hand[0];
             
             for(int i = 0; i < hand.length; i++)
             {
                 if(hand[i].rank > highestCard.rank)
                 {
                     highestCard = hand[i];
+                }
+                if(hand[i].suit != Suit.SPADES)
+                {
+                    
                 }
             }
             return highestCard;
