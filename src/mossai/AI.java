@@ -7,19 +7,29 @@ import java.util.*;
 
 public class AI implements MSWAgent
 {
-    private List<List> myHand = new ArrayList<List>();
-    private List<Card> gameHand;
-    private final String myName = "Halo";
-    private int myOrder = 0;
-    private String[] agents = new String[3];
-    // -------------------------------------------------------------------------
+    // Associate each card with an integer for easy reference.
+    private HashMap<Suit, Integer> suits;
+    private HashMap<Card, Integer> deck;
+    // Each belief[i][j] is the inverse of the probability that player i has card j.
+    private int[][] belief;
+    // Names are stored left to right from our position.
+    private String names[];
+    // Our position in the play order;
+    private int pos;
     
     public AI()
     {
-        for(int i = 0; i < 4; i++)
-        {
-            myHand.add(new ArrayList<Card>());
-        }
+        suits = new HashMap(4);
+        suits.put(Suit.HEARTS, 0);
+        suits.put(Suit.CLUBS, 1);
+        suits.put(Suit.DIAMONDS, 2);
+        suits.put(Suit.SPADES, 3);
+        
+        deck = new HashMap(52);
+        for(Card c : Card.values()) deck.put(c, suits.get(c.suit)*13 + c.rank);
+        
+        names = new String[] {"Me", "", ""};
+        pos = -1;
     }
     
     /**
@@ -27,7 +37,8 @@ public class AI implements MSWAgent
      */
     public void setup(String agentLeft, String agentRight)
     {
-        
+        names[1] = agentLeft;
+        names[2] = agentRight;
     }
 
     /**
@@ -37,72 +48,21 @@ public class AI implements MSWAgent
      */
     public void seeHand(List<Card> hand, int order)
     {
-        // seeHand seems to be called only once, at the start of the game
+        pos = order;
+        // Update the belief with our card.
+        for(Card c : hand) belief[pos][deck.get(c)] = 1;
+        // Initialise the probability distribution of unknown cards.
+        int evenDist = 52 - hand.size();
         
-        // assign the order
-        myOrder = order;
-        agents[order] = myName;
-        
-        gameHand = hand;
-        
-        // sort the hand in the ascending order in each suit 
-        sortMyHand(hand);
-        
-        System.out.println("initial hand: " + printHand(hand) + "\nspades\t\t" + printHand(myHand.get(0)) + "\ndiamonds\t" + printHand(myHand.get(1)) + "\nclubs\t\t" + printHand(myHand.get(2)) + "\nhearts\t\t" + printHand(myHand.get(3)));
-    }
-   
-    /**
-     *  Allocate the cards to the appropriate suit, then sort 
-     */
-    private void sortMyHand(List<Card> hand)
-    {
-        for(int i = 0; i < hand.size(); i++)
+        for(int i = 0; i < 52; i++)
         {
-            switch(hand.get(i).suit)
+            if(belief[pos][i] != 1)
             {
-                case SPADES: 
-                {
-                    addToHand(myHand.get(0), hand.get(i));
-                    break;
-                }
-                case DIAMONDS: 
-                {
-                    addToHand(myHand.get(1), hand.get(i));
-                    break;
-                }
-                case CLUBS: 
-                {
-                    addToHand(myHand.get(2), hand.get(i));
-                    break;
-                }
-                case HEARTS: 
-                {
-                    addToHand(myHand.get(3), hand.get(i));
-                    break;
-                }
+                belief[(pos+1)%3][i] = evenDist;
+                belief[(pos+2)%3][i] = evenDist;
             }
         }
     }
-    
-    /**
-     *  Allocate the card to the appropriate suit,
-     *  sort in the ascending order
-     */
-    private void addToHand(List<Card> suitHand, Card card)
-    {
-        int i = 0;
-        for(i = 0; i < suitHand.size(); i++)
-        {
-            // if smaller get the index
-            if(card.rank < suitHand.get(i).rank)
-            {
-                break;
-            }
-        }
-        // add the card to the list
-        suitHand.add(i, card);
-    }
-    
     // -------------------------------------------------------------------------    Discarding
     /**
      * This method will be called on the leader agent, after the deal.
