@@ -7,19 +7,29 @@ import java.util.*;
 
 public class AI implements MSWAgent
 {
-    private List<List> myHand = new ArrayList<List>();
-    private List<Card> gameHand;
-    private final String myName = "Halo";
-    private int myOrder = 0;
-    private String[] agents = new String[3];
-    // -------------------------------------------------------------------------
+    // Associate each card with an integer for easy reference.
+    private HashMap<Suit, Integer> suits;
+    private HashMap<Card, Integer> deck;
+    // Each belief[i][j] is the inverse of the probability that player i has card j.
+    private int[][] belief;
+    // Names are stored left to right from our position.
+    private String names[];
+    // Our position in the play order;
+    private int pos;
     
     public AI()
     {
-        for(int i = 0; i < 4; i++)
-        {
-            myHand.add(new ArrayList<Card>());
-        }
+        suits = new HashMap(4);
+        suits.put(Suit.HEARTS, 0);
+        suits.put(Suit.CLUBS, 1);
+        suits.put(Suit.DIAMONDS, 2);
+        suits.put(Suit.SPADES, 3);
+        
+        deck = new HashMap(52);
+        for(Card c : Card.values()) deck.put(c, suits.get(c.suit)*13 + c.rank);
+        
+        names = new String[] {"Me", "", ""};
+        pos = -1;
     }
     
     /**
@@ -27,7 +37,8 @@ public class AI implements MSWAgent
      */
     public void setup(String agentLeft, String agentRight)
     {
-        
+        names[1] = agentLeft;
+        names[2] = agentRight;
     }
 
     /**
@@ -37,72 +48,21 @@ public class AI implements MSWAgent
      */
     public void seeHand(List<Card> hand, int order)
     {
-        // seeHand seems to be called only once, at the start of the game
+        pos = order;
+        // Update the belief with our card.
+        for(Card c : hand) belief[pos][deck.get(c)] = 1;
+        // Initialise the probability distribution of unknown cards.
+        int evenDist = 52 - hand.size();
         
-        // assign the order
-        myOrder = order;
-        agents[order] = myName;
-        
-        gameHand = hand;
-        
-        // sort the hand in the ascending order in each suit 
-        sortMyHand(hand);
-        
-        System.out.println("initial hand: " + printHand(hand) + "\nspades\t\t" + printHand(myHand.get(0)) + "\ndiamonds\t" + printHand(myHand.get(1)) + "\nclubs\t\t" + printHand(myHand.get(2)) + "\nhearts\t\t" + printHand(myHand.get(3)));
-    }
-   
-    /**
-     *  Allocate the cards to the appropriate suit, then sort 
-     */
-    private void sortMyHand(List<Card> hand)
-    {
-        for(int i = 0; i < hand.size(); i++)
+        for(int i = 0; i < 52; i++)
         {
-            switch(hand.get(i).suit)
+            if(belief[pos][i] != 1)
             {
-                case SPADES: 
-                {
-                    addToHand(myHand.get(0), hand.get(i));
-                    break;
-                }
-                case DIAMONDS: 
-                {
-                    addToHand(myHand.get(1), hand.get(i));
-                    break;
-                }
-                case CLUBS: 
-                {
-                    addToHand(myHand.get(2), hand.get(i));
-                    break;
-                }
-                case HEARTS: 
-                {
-                    addToHand(myHand.get(3), hand.get(i));
-                    break;
-                }
+                belief[(pos+1)%3][i] = evenDist;
+                belief[(pos+2)%3][i] = evenDist;
             }
         }
     }
-    
-    /**
-     *  Allocate the card to the appropriate suit,
-     *  sort in the ascending order
-     */
-    private void addToHand(List<Card> suitHand, Card card)
-    {
-        int i = 0;
-        for(i = 0; i < suitHand.size(); i++)
-        {
-            // if smaller get the index
-            if(card.rank < suitHand.get(i).rank)
-            {
-                break;
-            }
-        }
-        // add the card to the list
-        suitHand.add(i, card);
-    }
-    
     // -------------------------------------------------------------------------    Discarding
     /**
      * This method will be called on the leader agent, after the deal.
@@ -113,7 +73,7 @@ public class AI implements MSWAgent
         int toDiscard = 4;
         Card[] cards = new Card[toDiscard];
         
-        if(myOrder == LEADER)
+        /*if(myOrder == LEADER)
         {
             //if(myDiamonds.size() < 2)
             // other ideas: check if you can get rid of some suit so that you can use your trumps
@@ -121,12 +81,13 @@ public class AI implements MSWAgent
             // default: discard the lowest cards, avoid the trump
             discardLowestNoTrump(cards, toDiscard);
         }
-        
+        */
         return cards;
     }
     
     private void discardLowestNoTrump(Card[] cards, int toDiscard)
     {
+        /*
         int discarded = 0, suit = 0;
         Card lowest = gameHand.get(0);
         
@@ -145,7 +106,7 @@ public class AI implements MSWAgent
             }
             cards[discarded] = (Card)myHand.get(suit).remove(0);
             discarded++;
-        }
+        }*/
     }
     
     // -------------------------------------------------------------------------
@@ -159,9 +120,9 @@ public class AI implements MSWAgent
         return null;
     }
     
-    private void createStateTree()
+    private void createGameTree()
     {
-        // Create the tree
+        // Create the game tree
         GameGraph GameTree = new GameGraph();
         
         // root node
@@ -170,175 +131,59 @@ public class AI implements MSWAgent
         // Add the root node
         GameTree.AddNode(parentNode);
         
-        expandTree(GameTree, 0);
-    }
-    
-    private void expandTree(GameGraph GameTree, int parent)
-    {
-        // set up the root
-        Node parentNode = GameTree.GetNode(parent);
-        parentNode.Parent = null;
-        
         // loop control
         int maxDepth = 5;
         int depth = 0;
-        int traverseBack = 0;
-        int nextVisit = 0;
+        boolean traverseBack = false;
+        int lastVisted = 0;
         
-        long startTime = System.currentTimeMillis();
-        
-        while((System.currentTimeMillis()-startTime) < 180)
+        while(true)
         {
-            if(traverseBack > 0)
+            if(traverseBack)
             {
-                while(traverseBack != 0)
-                {  
-                    // check if made it back to the root node
-                    if(parentNode.Parent == null)
-                    {
-                        traverseBack = 0;
-                        depth = 0;
-                        break;
-                    }
+                // get the parent of the current node
+                parentNode = parentNode.Parent;
+                
+                depth--;
+                
+                // check if not made it back to the root node
+                if(parentNode != null)
+                {
                     
-                    // save child's score into the parent node
-                    parentNode.Parent.Ratio += parentNode.Ratio;
-
-                    // get the parent of the current node
-                    parentNode = parentNode.Parent;
-                    
-                    traverseBack--;
-                    depth--;
+                }
+                else
+                {
+                    break;
                 }
             }
             
-            // create a node for the game state
             branch(GameTree, parentNode);
             
             depth++;
 
             if(depth >= maxDepth || parentNode.ChildrenSize() > 0)
             {
-                // traverse back one level
-                traverseBack = 1;
-               
-                // if win == true
-                parentNode.Ratio++;
-                // else
-                parentNode.Ratio--;
+                traverseBack = true;
             }
             else
             {
-                // pick which node to expand next
-                nextVisit = evaluateNexVisit(parentNode);
-                
-                // traverse to that node
-                if(nextVisit >= 0)
+                lastVisted = parentNode.LastVisitedChild;
+                if(lastVisted < parentNode.ChildrenSize())
                 {
-                    parentNode = parentNode.GetChild(nextVisit);
+                    parentNode.LastVisitedChild++;
+                    parentNode = parentNode.GetChild(lastVisted);
                 }
                 else
                 {
-                    // no more nodes, traverse back one level
-                    traverseBack = Math.abs(nextVisit);
-
-                    // if win == true
-                    parentNode.Ratio++;
-                    // else
-                    parentNode.Ratio--;
+                    traverseBack = true;
                 }
             }
-        }
-    }
-    // -n if it should go back n levels
-    private int evaluateNexVisit(Node parentNode)
-    {   
-        // go to the next one
-        parentNode.LastVisitedChild++;
-        if(parentNode.LastVisitedChild < parentNode.ChildrenSize())
-        {
-            return parentNode.LastVisitedChild;
-        }
-        else
-        {
-            return -1;
-        }
-    }
-    
-    private Card greedyTurn(Card[] table, Card[] hand)
-    {
-        if(table.length > 0)
-        {
-            Card lowestCard = hand[0];
-            Card highestCard = hand[0];
-            Card lowestCardSuit = null;
-            Card highestCardSuit = null;
-        
-            Suit tickSuit = table[0].suit;
-            
-            for(int i = 0; i < hand.length; i++)
-            {
-                if(hand[i].suit == tickSuit)
-                {
-                    if(highestCardSuit != null)
-                    {
-                        if(hand[i].rank > highestCardSuit.rank)
-                        {
-                            highestCardSuit = hand[i];
-                        }
-                    }
-                    else
-                    {
-                        highestCardSuit = hand[i];
-                    }
-                    
-                    if(lowestCardSuit != null)
-                    {
-                        if(hand[i].rank < lowestCardSuit.rank)
-                        {
-                            lowestCardSuit = hand[i];
-                        }
-                    }
-                    else
-                    {
-                        lowestCardSuit = hand[i];
-                    }
-                }
-                
-                if(hand[i].rank > highestCard.rank)
-                {
-                    highestCard = hand[i];
-                }
-                if(hand[i].rank < lowestCard.rank)
-                {
-                    lowestCard = hand[i];
-                }
-            }
-            return highestCard;
-        }
-        else
-        {
-            Card highestCard = hand[0];
-            Card highestCardNotTrump = hand[0];
-            
-            for(int i = 0; i < hand.length; i++)
-            {
-                if(hand[i].rank > highestCard.rank)
-                {
-                    highestCard = hand[i];
-                }
-                if(hand[i].suit != Suit.SPADES)
-                {
-                    
-                }
-            }
-            return highestCard;
         }
     }
     
     private void branch(GameGraph tree, Node parentNode)
     {
-    
+
     }
     
     /**
@@ -377,7 +222,7 @@ public class AI implements MSWAgent
      */
     public String sayName()
     {
-        return myName;
+        return "halo";
     }
     
     // ------------------------------------------------------------------------- 
@@ -423,17 +268,14 @@ public class AI implements MSWAgent
             return Nodes.get(i);
         }      
     }
-    
     private class Node
     {
         public Node Parent = null;
         public List<Node> Children = new ArrayList<Node>();
+        public List<Card> MyHand = new ArrayList<Card>();
         public int LastVisitedChild = 0;
-
-        public Card[] Opponent1 = new Card[52];
-        public Card[] Opponent2 = new Card[52];
-        
-        public int Ratio = 0;
+        public int Score = 0;
+        public Card[] playedSoFar = new Card[2];
         
         public int ChildrenSize()
         {
@@ -443,6 +285,11 @@ public class AI implements MSWAgent
         public Node GetChild(int i)
         {
             return Children.get(i);
+        }  
+        
+        public int HandSize()
+        {
+            return MyHand.size();
         }
     }
 }
