@@ -170,6 +170,15 @@ public class AI implements MSWAgent
         // Add the root node
         GameTree.AddNode(parentNode);
         
+        expandTree(GameTree, 0);
+    }
+    
+    private void expandTree(GameGraph GameTree, int parent)
+    {
+        // set up the root
+        Node parentNode = GameTree.GetNode(parent);
+        parentNode.Parent = null;
+        
         // loop control
         int maxDepth = 5;
         int depth = 0;
