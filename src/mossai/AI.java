@@ -176,7 +176,9 @@ public class AI implements MSWAgent
         int traverseBack = 0;
         int nextVisit = 0;
         
-        while(true)
+        long startTime = System.currentTimeMillis();
+        
+        while((System.currentTimeMillis()-startTime) < 180)
         {
             if(traverseBack > 0)
             {
