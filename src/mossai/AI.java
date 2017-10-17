@@ -265,6 +265,72 @@ public class AI implements MSWAgent
         }
     }
     
+    private Card greedyTurn(Card[] table, Card[] hand)
+    {
+        if(table.length > 0)
+        {
+            Card lowestCard = hand[0];
+            Card highestCard = hand[0];
+            Card lowestCardSuit = null;
+            Card highestCardSuit = null;
+        
+            Suit tickSuit = table[0].suit;
+            
+            for(int i = 0; i < hand.length; i++)
+            {
+                if(hand[i].suit == tickSuit)
+                {
+                    if(highestCardSuit != null)
+                    {
+                        if(hand[i].rank > highestCardSuit.rank)
+                        {
+                            highestCardSuit = hand[i];
+                        }
+                    }
+                    else
+                    {
+                        highestCardSuit = hand[i];
+                    }
+                    
+                    if(lowestCardSuit != null)
+                    {
+                        if(hand[i].rank < lowestCardSuit.rank)
+                        {
+                            lowestCardSuit = hand[i];
+                        }
+                    }
+                    else
+                    {
+                        lowestCardSuit = hand[i];
+                    }
+                }
+                
+                if(hand[i].rank > highestCard.rank)
+                {
+                    highestCard = hand[i];
+                }
+                if(hand[i].rank < lowestCard.rank)
+                {
+                    lowestCard = hand[i];
+                }
+            }
+            return highestCard;
+        }
+        else
+        {
+            Card highestCard = hand[0];
+            
+            for(int i = 0; i < hand.length; i++)
+            {
+                if(hand[i].rank > highestCard.rank)
+                {
+                    highestCard = hand[i];
+                }
+            }
+            return highestCard;
+        }
+    }
+    
     private void branch(GameGraph tree, Node parentNode)
     {
     
