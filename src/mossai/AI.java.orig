@@ -137,8 +137,13 @@ public class AI implements MSWAgent
                 i--;
             }
         }
+<<<<<<< HEAD
         
         return picks;
+=======
+        else return new Card[4];
+        return null;
+>>>>>>> origin/master
     }
     
     /**
@@ -161,41 +166,41 @@ public class AI implements MSWAgent
     {
         return null;
     }
-    
+
     private void createStateTree()
     {
         // Create the tree
         GameGraph GameTree = new GameGraph();
-        
+
         // root node
         Node parentNode = new Node();
 
         // Add the root node
         GameTree.AddNode(parentNode);
-        
+
         expandTree(GameTree, 0);
     }
-    
+
     private void expandTree(GameGraph GameTree, int parent)
     {
         // set up the root
         Node parentNode = GameTree.GetNode(parent);
         parentNode.Parent = null;
-        
+
         // loop control
         int maxDepth = 5;
         int depth = 0;
         int traverseBack = 0;
         int nextVisit = 0;
-        
+
         long startTime = System.currentTimeMillis();
-        
-        while((System.currentTimeMillis()-startTime) < 180)
+
+        while((System.currentTimeMillis() - startTime) < 180)
         {
             if(traverseBack > 0)
             {
                 while(traverseBack != 0)
-                {  
+                {
                     // check if made it back to the root node
                     if(parentNode.Parent == null)
                     {
@@ -203,28 +208,28 @@ public class AI implements MSWAgent
                         depth = 0;
                         break;
                     }
-                    
+
                     // save child's score into the parent node
                     parentNode.Parent.Ratio += parentNode.Ratio;
 
                     // get the parent of the current node
                     parentNode = parentNode.Parent;
-                    
+
                     traverseBack--;
                     depth--;
                 }
             }
-            
+
             // create a node for the game state
             branch(GameTree, parentNode);
-            
+
             depth++;
 
             if(depth >= maxDepth || parentNode.ChildrenSize() > 0)
             {
                 // traverse back one level
                 traverseBack = 1;
-               
+
                 // if win == true
                 parentNode.Ratio++;
                 // else
@@ -234,7 +239,7 @@ public class AI implements MSWAgent
             {
                 // pick which node to expand next
                 nextVisit = evaluateNexVisit(parentNode);
-                
+
                 // traverse to that node
                 if(nextVisit >= 0)
                 {
@@ -256,7 +261,7 @@ public class AI implements MSWAgent
 
     // -n if it should go back n levels
     private int evaluateNexVisit(Node parentNode)
-    {   
+    {
         // go to the next one
         parentNode.LastVisitedChild++;
         if(parentNode.LastVisitedChild < parentNode.ChildrenSize())
@@ -268,7 +273,7 @@ public class AI implements MSWAgent
             return -1;
         }
     }
-    
+
     private Card greedyTurn(Card[] table, Card[] hand)
     {
         // if there are cards on the table (played in this tick)
@@ -279,11 +284,17 @@ public class AI implements MSWAgent
             Card highestCardTrump = null;
             Card lowestCardSuit = null;
             Card highestCardSuit = null;
+<<<<<<< HEAD
+
+            Suit tickSuit = table[0].suit;
+
+=======
         
             // we have to obey the suit played by the leader
             Suit tickSuit = table[0].suit;
             
             // for each card in our hand
+>>>>>>> origin/master
             for(int i = 0; i < hand.length; i++)
             {
                 // if the card matches the played suit
@@ -309,11 +320,16 @@ public class AI implements MSWAgent
                         highestCardSuit = hand[i];
                         lowestCardSuit = hand[i];
                     }
+<<<<<<< HEAD
+
+                    if(lowestCardSuit != null)
+=======
                 }
                 else
                 {
                     // if it is a trump card
                     if(hand[i].suit == Suit.SPADES)
+>>>>>>> origin/master
                     {
                         // if it's the first trump we found
                         if(highestCardTrump != null && lowestCardTrump != null)
@@ -345,12 +361,17 @@ public class AI implements MSWAgent
                         }
                     }
                 }
+<<<<<<< HEAD
+
+                if(hand[i].rank > highestCard.rank)
+=======
             }
             // assuming we have to play the suit
             if(lowestCardSuit != null)
             {
                 // check if we can beat what's on the table
                 for(int i = 0; i < table.length; i++)
+>>>>>>> origin/master
                 {
                     // if our card of the same suit can't beat what's already on the table
                     if(highestCardSuit.rank < table[i].rank || (tickSuit != Suit.SPADES && table[i].suit == Suit.SPADES))
@@ -396,7 +417,7 @@ public class AI implements MSWAgent
         {
             Card highestCard = hand[0];
             Card highestCardNotTrump = hand[0];
-            
+
             for(int i = 0; i < hand.length; i++)
             {
                 if(hand[i].rank > highestCard.rank)
@@ -405,31 +426,31 @@ public class AI implements MSWAgent
                 }
                 if(hand[i].suit != Suit.SPADES)
                 {
-                    
+
                 }
             }
             return highestCard;
         }
     }
-    
+
     private void branch(GameGraph tree, Node parentNode)
     {
-    
+
     }
-    
+
     /**
      * Sees an Agent play a card.
      * A 50 ms timelimit is given to this function.
-     * @param card, the Card played.
+     * @param card,  the Card played.
      * @param agent, the name of the agent who played the card.
      */
     public void seeCard(Card card, String agent)
     {
-        
+
     }
 
     /**
-     * See the result of the trick. 
+     * See the result of the trick.
      * A 50 ms timelimit is given to this method.
      * This method will be called on each eagent at the end of each trick.
      * @param winner, the player who played the winning card.
@@ -437,7 +458,7 @@ public class AI implements MSWAgent
     public void seeResult(String winner)
     {
     }
-    
+
     /**
      * See the score for each player.
      * A 50 ms timelimit is givien to this method
@@ -449,16 +470,12 @@ public class AI implements MSWAgent
 
     /**
      * @return the Agents name.
-     * A 10ms timelimit is given here.
-     * This method will only be called once.
+     *         A 10ms timelimit is given here.
+     *         This method will only be called once.
      */
-    public String sayName()
-    {
-        return names[0];
-    }
-    
+    public String sayName() { return name; }
+
     // ------------------------------------------------------------------------- 
-     
     private void copyHand(List<Card> a, List<Card> b)
     {
         for(int i = 0; i < a.size(); i++)
@@ -466,41 +483,41 @@ public class AI implements MSWAgent
             b.add(a.get(i));
         }
     }
-    
+
     private String printHand(List<Card> cards)
     {
         StringBuilder output = new StringBuilder();
-        
+
         for(int i = 0; i < cards.size(); i++)
         {
             output.append(cards.get(i).toString() + ", ");
         }
-        
+
         return output.toString();
     }
-    
+
     // -------------------------------------------------------------------------    Data Structure
-    
     private class GameGraph
     {
         public List<Node> Nodes = new ArrayList<Node>();
-        
+
         public int Size()
         {
             return Nodes.size();
         }
-        
+
         public void AddNode(Node node)
         {
             Nodes.add(node);
         }
-        
+
         public Node GetNode(int i)
         {
             return Nodes.get(i);
-        }      
+        }
+
     }
-    
+
     private class Node
     {
         public Node Parent = null;
@@ -510,23 +527,27 @@ public class AI implements MSWAgent
 
         public Card[] Opponent1 = new Card[52];
         public Card[] Opponent2 = new Card[52];
+<<<<<<< HEAD
+
+=======
         
         public int MyScore = 0;
         public int Opscore1 = 0;
         public int Opscore2 = 0;
         
+>>>>>>> origin/master
         public int Ratio = 0;
-        
+
         public int ChildrenSize()
         {
             return Children.size();
         }
-        
+
         public Node GetChild(int i)
         {
             return Children.get(i);
-        }  
-        
+        }
+
         public int HandSize()
         {
             return MyHand.size();
