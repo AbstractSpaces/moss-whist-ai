@@ -1,0 +1,8 @@
+# Ignore files with extension `.class` & `.sm`
+*.class
+*.sm
+
+# Ignore `bin` dir
+build/
+# or
+*/build/*
