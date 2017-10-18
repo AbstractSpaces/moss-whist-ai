@@ -119,9 +119,9 @@ public class AI implements MSWAgent
         return null;
     }
     
-    private void createGameTree()
+    private void createStateTree()
     {
-        // Create the game tree
+        // Create the tree
         GameGraph GameTree = new GameGraph();
         
         // root node
@@ -130,66 +130,175 @@ public class AI implements MSWAgent
         // Add the root node
         GameTree.AddNode(parentNode);
         
+        expandTree(GameTree, 0);
+    }
+    
+    private void expandTree(GameGraph GameTree, int parent)
+    {
+        // set up the root
+        Node parentNode = GameTree.GetNode(parent);
+        parentNode.Parent = null;
+        
         // loop control
         int maxDepth = 5;
         int depth = 0;
-        boolean traverseBack = false;
-        int lastVisted = 0;
+        int traverseBack = 0;
+        int nextVisit = 0;
         
-        while(true)
+        long startTime = System.currentTimeMillis();
+        
+        while((System.currentTimeMillis()-startTime) < 180)
         {
-            if(traverseBack)
+            if(traverseBack > 0)
             {
-                // get the parent of the current node
-                parentNode = parentNode.Parent;
-                
-                depth--;
-                
-                // check if not made it back to the root node
-                if(parentNode != null)
-                {
+                while(traverseBack != 0)
+                {  
+                    // check if made it back to the root node
+                    if(parentNode.Parent == null)
+                    {
+                        traverseBack = 0;
+                        depth = 0;
+                        break;
+                    }
                     
-                }
-                else
-                {
-                    break;
+                    // save child's score into the parent node
+                    parentNode.Parent.Ratio += parentNode.Ratio;
+
+                    // get the parent of the current node
+                    parentNode = parentNode.Parent;
+                    
+                    traverseBack--;
+                    depth--;
                 }
             }
             
+            // create a node for the game state
             branch(GameTree, parentNode);
             
             depth++;
 
             if(depth >= maxDepth || parentNode.ChildrenSize() > 0)
             {
-                traverseBack = true;
+                // traverse back one level
+                traverseBack = 1;
+               
+                // if win == true
+                parentNode.Ratio++;
+                // else
+                parentNode.Ratio--;
             }
             else
             {
-                lastVisted = parentNode.LastVisitedChild;
-                if(lastVisted < parentNode.ChildrenSize())
+                // pick which node to expand next
+                nextVisit = evaluateNexVisit(parentNode);
+                
+                // traverse to that node
+                if(nextVisit >= 0)
                 {
-                    parentNode.LastVisitedChild++;
-                    parentNode = parentNode.GetChild(lastVisted);
+                    parentNode = parentNode.GetChild(nextVisit);
                 }
                 else
                 {
-                    traverseBack = true;
+                    // no more nodes, traverse back one level
+                    traverseBack = Math.abs(nextVisit);
+
+                    // if win == true
+                    parentNode.Ratio++;
+                    // else
+                    parentNode.Ratio--;
                 }
             }
+        }
+    }
+    // -n if it should go back n levels
+    private int evaluateNexVisit(Node parentNode)
+    {   
+        // go to the next one
+        parentNode.LastVisitedChild++;
+        if(parentNode.LastVisitedChild < parentNode.ChildrenSize())
+        {
+            return parentNode.LastVisitedChild;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    
+    private Card greedyTurn(Card[] table, Card[] hand)
+    {
+        if(table.length > 0)
+        {
+            Card lowestCard = hand[0];
+            Card highestCard = hand[0];
+            Card lowestCardSuit = null;
+            Card highestCardSuit = null;
+        
+            Suit tickSuit = table[0].suit;
+            
+            for(int i = 0; i < hand.length; i++)
+            {
+                if(hand[i].suit == tickSuit)
+                {
+                    if(highestCardSuit != null)
+                    {
+                        if(hand[i].rank > highestCardSuit.rank)
+                        {
+                            highestCardSuit = hand[i];
+                        }
+                    }
+                    else
+                    {
+                        highestCardSuit = hand[i];
+                    }
+                    
+                    if(lowestCardSuit != null)
+                    {
+                        if(hand[i].rank < lowestCardSuit.rank)
+                        {
+                            lowestCardSuit = hand[i];
+                        }
+                    }
+                    else
+                    {
+                        lowestCardSuit = hand[i];
+                    }
+                }
+                
+                if(hand[i].rank > highestCard.rank)
+                {
+                    highestCard = hand[i];
+                }
+                if(hand[i].rank < lowestCard.rank)
+                {
+                    lowestCard = hand[i];
+                }
+            }
+            return highestCard;
+        }
+        else
+        {
+            Card highestCard = hand[0];
+            Card highestCardNotTrump = hand[0];
+            
+            for(int i = 0; i < hand.length; i++)
+            {
+                if(hand[i].rank > highestCard.rank)
+                {
+                    highestCard = hand[i];
+                }
+                if(hand[i].suit != Suit.SPADES)
+                {
+                    
+                }
+            }
+            return highestCard;
         }
     }
     
     private void branch(GameGraph tree, Node parentNode)
     {
-        // so I go 1st
-        if(myOrder == LEADER)
-        {
-            for(int i = 0; i < parentNode.MyHand.size(); i++)
-            {
-                // if 
-            }
-        }
+    
     }
     
     /**
@@ -274,14 +383,18 @@ public class AI implements MSWAgent
             return Nodes.get(i);
         }      
     }
+    
     private class Node
     {
         public Node Parent = null;
         public List<Node> Children = new ArrayList<Node>();
         public List<Card> MyHand = new ArrayList<Card>();
         public int LastVisitedChild = 0;
-        public int Score = 0;
-        public Card[] playedSoFar = new Card[2];
+
+        public Card[] Opponent1 = new Card[52];
+        public Card[] Opponent2 = new Card[52];
+        
+        public int Ratio = 0;
         
         public int ChildrenSize()
         {
