@@ -8,9 +8,13 @@ import java.util.*;
 public class AI implements MSWAgent
 {
     // Associate each card with an integer for easy reference.
+    // Cards are ordered by rank, then by suit.
     private HashMap<Suit, Integer> suits;
     private HashMap<Card, Integer> deck;
-    // Each belief[i][j] is the inverse of the probability that player i has card j.
+    // Each belief[i] refers to the hand of the player at position i.
+    // Each belief[i][j] is the probability of that player holding that card,
+    // represented as an integer from 0-52. Divide this number by 52 to get the
+    // probability.
     private int[][] belief;
     // Names are stored left to right from our position.
     private String names[];
@@ -26,7 +30,8 @@ public class AI implements MSWAgent
         suits.put(Suit.SPADES, 3);
         
         deck = new HashMap(52);
-        for(Card c : Card.values()) deck.put(c, suits.get(c.suit)*13 + c.rank);
+        // Ranks start at 2, so we subtract 2 to index from 0.
+        for(Card c : Card.values()) deck.put(c, c.rank - 2 + suits.get(c.suit));
         
         names = new String[] {"Me", "", ""};
         pos = -1;
@@ -50,13 +55,13 @@ public class AI implements MSWAgent
     {
         pos = order;
         // Update the belief with our card.
-        for(Card c : hand) belief[pos][deck.get(c)] = 1;
+        for(Card c : hand) belief[pos][deck.get(c)] = 52;
         // Initialise the probability distribution of unknown cards.
         int evenDist = 52 - hand.size();
         
         for(int i = 0; i < 52; i++)
         {
-            if(belief[pos][i] != 1)
+            if(belief[pos][i] == 0)
             {
                 belief[(pos+1)%3][i] = evenDist;
                 belief[(pos+2)%3][i] = evenDist;
@@ -69,45 +74,13 @@ public class AI implements MSWAgent
      * If the agent is not the leader, it is sufficient to return an empty array.
      */
     public Card[] discard()
-    {
-        int toDiscard = 4;
-        Card[] cards = new Card[toDiscard];
-        
-        if(myOrder == LEADER)
+    {   
+        if(pos == LEADER)
         {
-            //if(myDiamonds.size() < 2)
-            // other ideas: check if you can get rid of some suit so that you can use your trumps
             
-            // default: discard the lowest cards, avoid the trump
-            discardLowestNoTrump(cards, toDiscard);
         }
-        
-        return cards;
+        else return new Card[4];
     }
-    
-    private void discardLowestNoTrump(Card[] cards, int toDiscard)
-    {
-        int discarded = 0, suit = 0;
-        Card lowest = gameHand.get(0);
-        
-        while(discarded < toDiscard)
-        {
-            for(int i = 1; i < 4; i++)
-            {
-                if(myHand.get(i).size() > 0)
-                {
-                    if(lowest.rank > ((Card)myHand.get(i).get(0)).rank)
-                    {
-                        lowest = (Card)myHand.get(i).get(0);
-                        suit = i;
-                    }
-                }
-            }
-            cards[discarded] = (Card)myHand.get(suit).remove(0);
-            discarded++;
-        }
-    }
-    
     // -------------------------------------------------------------------------
     /**
      * Agent returns the card they wish to play.
@@ -309,6 +282,7 @@ public class AI implements MSWAgent
      */
     public void seeCard(Card card, String agent)
     {
+        
     }
 
     /**
@@ -337,7 +311,7 @@ public class AI implements MSWAgent
      */
     public String sayName()
     {
-        return myName;
+        return names[0];
     }
     
     // ------------------------------------------------------------------------- 
