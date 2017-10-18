@@ -7,43 +7,86 @@ import java.util.*;
 
 public class AI implements MSWAgent
 {
-    // Associate each card with an integer for easy reference.
-    // Cards are ordered by rank, then by suit.
+    /** An encapsulation of our knowledge/beliefs about an opposing agent. */
+    private class Opponent
+    {
+        int pos;
+        
+        private String name;
+        
+        /**
+         * Each belief element maps a card to the probability of the opponent
+         * holding that card.
+         */
+        private HashMap<Card, Double> belief;
+        
+        // The number of unknown cards in the opponent's hand.
+        private double unknowns;
+        
+        private Opponent() { belief = new HashMap(52); }
+        
+        /**
+         * Initialise the belief probabilities using what we know about our own
+         * hand.
+         */
+        private void init(List<Card> hand, int p)
+        {
+            pos = p;
+            
+            // Cards not in our hand have an even chance of being in this opponent's hand.
+            if(pos == LEADER) unknowns = 20.0;
+            else unknowns = 16.0;
+            
+            for(Card c : Card.values()) belief.put(c, unknowns/pool);
+            for(Card h : hand) belief.put(h, 0.0);
+        }
+
+    }
+    
+    // Map for indexing into our hand array.
     private HashMap<Suit, Integer> suits;
-    private HashMap<Card, Integer> deck;
-    // Each belief[i] refers to the hand of the player at position i.
-    // Each belief[i][j] is the probability of that player holding that card,
-    // represented as an integer from 0-52. Divide this number by 52 to get the
-    // probability.
-    private int[][] belief;
-    // Names are stored left to right from our position.
-    private String names[];
-    // Our position in the play order;
+    
+    private String name;
+    
+    // Opponents are counted from our left.
+    private Opponent[] opponents;
+    
+    // Our position in the order.
     private int pos;
     
+    // Cards in our hand.
+    private ArrayList<Card>[] hand;
+    
+    // Cards played so far this turn.
+    private Card[] table;
+    
+    // The number of cards with uncertain location.
+    private double pool;
+
     public AI()
     {
-        suits = new HashMap(4);
+        suits = new HashMap();
         suits.put(Suit.HEARTS, 0);
         suits.put(Suit.CLUBS, 1);
         suits.put(Suit.DIAMONDS, 2);
         suits.put(Suit.SPADES, 3);
         
-        deck = new HashMap(52);
-        // Ranks start at 2, so we subtract 2 to index from 0.
-        for(Card c : Card.values()) deck.put(c, c.rank - 2 + suits.get(c.suit));
+        name = "Halo";
+        opponents = new Opponent[2];
+        table = new Card[3];
         
-        names = new String[] {"Me", "", ""};
-        pos = -1;
+        hand = new ArrayList[4];
+        for(ArrayList suit : hand) suit = new ArrayList(13);
+        pool = 52.0;
     }
-    
+
     /**
      * Tells the agent the names of the competing agents, and their relative position.
      */
     public void setup(String agentLeft, String agentRight)
     {
-        names[1] = agentLeft;
-        names[2] = agentRight;
+        opponents[0].name = agentLeft;
+        opponents[1].name = agentRight;
     }
 
     /**
@@ -51,36 +94,53 @@ public class AI implements MSWAgent
      * The agent is told the cards they have (16 cards, or 20 if they are the leader)
      * and the order they are playing (0 for the leader, 1 for the left of the leader, and 2 for the right of the leader).
      */
-    public void seeHand(List<Card> hand, int order)
+    public void seeHand(List<Card> deal, int order)
     {
         pos = order;
-        // Update the belief with our card.
-        for(Card c : hand) belief[pos][deck.get(c)] = 52;
-        // Initialise the probability distribution of unknown cards.
-        int evenDist = 52 - hand.size();
+        pool -= deal.size();
         
-        for(int i = 0; i < 52; i++)
-        {
-            if(belief[pos][i] == 0)
-            {
-                belief[(pos+1)%3][i] = evenDist;
-                belief[(pos+2)%3][i] = evenDist;
-            }
-        }
+        // Initialise beliefs about opponent hands.
+        for(int i = 0; i < 2; i++) opponents[i].init(deal, (order+i)%3);
+        
+        // Sort cards based on rank before assigning them to hand.
+        deal.sort(new CardCompare());
+        
+        // Insert ordered cards into hand.
+        for(Card c : deal) hand[suits.get(c.suit)].add(c);
     }
-    // -------------------------------------------------------------------------    Discarding
+    
     /**
      * This method will be called on the leader agent, after the deal.
      * If the agent is not the leader, it is sufficient to return an empty array.
      */
     public Card[] discard()
-    {   
+    {
+        Card[] picks = new Card[4];
+        int i = 0;
+        
         if(pos == LEADER)
         {
-            
+            while(i < 4)
+            {
+                picks[i] = evalDiscard();
+                hand[suits.get(picks[i].suit)].remove(picks[i]);
+                i--;
+            }
         }
-        else return new Card[4];
+        
+        return picks;
     }
+    
+    /**
+     * Evaluate cards in the hard for the best to discard.
+     * @return The chosen card.
+     */
+    private Card evalDiscard()
+    {
+        // TODO: Write a formula than can improve through learning.
+        return null;
+    }
+
     // -------------------------------------------------------------------------
     /**
      * Agent returns the card they wish to play.
@@ -91,41 +151,41 @@ public class AI implements MSWAgent
     {
         return null;
     }
-    
+
     private void createStateTree()
     {
         // Create the tree
         GameGraph GameTree = new GameGraph();
-        
+
         // root node
         Node parentNode = new Node();
 
         // Add the root node
         GameTree.AddNode(parentNode);
-        
+
         expandTree(GameTree, 0);
     }
-    
+
     private void expandTree(GameGraph GameTree, int parent)
     {
         // set up the root
         Node parentNode = GameTree.GetNode(parent);
         parentNode.Parent = null;
-        
+
         // loop control
         int maxDepth = 5;
         int depth = 0;
         int traverseBack = 0;
         int nextVisit = 0;
-        
+
         long startTime = System.currentTimeMillis();
-        
-        while((System.currentTimeMillis()-startTime) < 180)
+
+        while((System.currentTimeMillis() - startTime) < 180)
         {
             if(traverseBack > 0)
             {
                 while(traverseBack != 0)
-                {  
+                {
                     // check if made it back to the root node
                     if(parentNode.Parent == null)
                     {
@@ -133,28 +193,28 @@ public class AI implements MSWAgent
                         depth = 0;
                         break;
                     }
-                    
+
                     // save child's score into the parent node
                     parentNode.Parent.Ratio += parentNode.Ratio;
 
                     // get the parent of the current node
                     parentNode = parentNode.Parent;
-                    
+
                     traverseBack--;
                     depth--;
                 }
             }
-            
+
             // create a node for the game state
             branch(GameTree, parentNode);
-            
+
             depth++;
 
             if(depth >= maxDepth || parentNode.ChildrenSize() > 0)
             {
                 // traverse back one level
                 traverseBack = 1;
-               
+
                 // if win == true
                 parentNode.Ratio++;
                 // else
@@ -164,7 +224,7 @@ public class AI implements MSWAgent
             {
                 // pick which node to expand next
                 nextVisit = evaluateNexVisit(parentNode);
-                
+
                 // traverse to that node
                 if(nextVisit >= 0)
                 {
@@ -183,9 +243,10 @@ public class AI implements MSWAgent
             }
         }
     }
+
     // -n if it should go back n levels
     private int evaluateNexVisit(Node parentNode)
-    {   
+    {
         // go to the next one
         parentNode.LastVisitedChild++;
         if(parentNode.LastVisitedChild < parentNode.ChildrenSize())
@@ -197,7 +258,7 @@ public class AI implements MSWAgent
             return -1;
         }
     }
-    
+
     private Card greedyTurn(Card[] table, Card[] hand)
     {
         if(table.length > 0)
@@ -206,9 +267,9 @@ public class AI implements MSWAgent
             Card highestCard = hand[0];
             Card lowestCardSuit = null;
             Card highestCardSuit = null;
-        
+
             Suit tickSuit = table[0].suit;
-            
+
             for(int i = 0; i < hand.length; i++)
             {
                 if(hand[i].suit == tickSuit)
@@ -224,7 +285,7 @@ public class AI implements MSWAgent
                     {
                         highestCardSuit = hand[i];
                     }
-                    
+
                     if(lowestCardSuit != null)
                     {
                         if(hand[i].rank < lowestCardSuit.rank)
@@ -237,7 +298,7 @@ public class AI implements MSWAgent
                         lowestCardSuit = hand[i];
                     }
                 }
-                
+
                 if(hand[i].rank > highestCard.rank)
                 {
                     highestCard = hand[i];
@@ -253,7 +314,7 @@ public class AI implements MSWAgent
         {
             Card highestCard = hand[0];
             Card highestCardNotTrump = hand[0];
-            
+
             for(int i = 0; i < hand.length; i++)
             {
                 if(hand[i].rank > highestCard.rank)
@@ -262,31 +323,31 @@ public class AI implements MSWAgent
                 }
                 if(hand[i].suit != Suit.SPADES)
                 {
-                    
+
                 }
             }
             return highestCard;
         }
     }
-    
+
     private void branch(GameGraph tree, Node parentNode)
     {
-    
+
     }
-    
+
     /**
      * Sees an Agent play a card.
      * A 50 ms timelimit is given to this function.
-     * @param card, the Card played.
+     * @param card,  the Card played.
      * @param agent, the name of the agent who played the card.
      */
     public void seeCard(Card card, String agent)
     {
-        
+
     }
 
     /**
-     * See the result of the trick. 
+     * See the result of the trick.
      * A 50 ms timelimit is given to this method.
      * This method will be called on each eagent at the end of each trick.
      * @param winner, the player who played the winning card.
@@ -294,7 +355,7 @@ public class AI implements MSWAgent
     public void seeResult(String winner)
     {
     }
-    
+
     /**
      * See the score for each player.
      * A 50 ms timelimit is givien to this method
@@ -306,16 +367,12 @@ public class AI implements MSWAgent
 
     /**
      * @return the Agents name.
-     * A 10ms timelimit is given here.
-     * This method will only be called once.
+     *         A 10ms timelimit is given here.
+     *         This method will only be called once.
      */
-    public String sayName()
-    {
-        return names[0];
-    }
-    
+    public String sayName() { return name; }
+
     // ------------------------------------------------------------------------- 
-     
     private void copyHand(List<Card> a, List<Card> b)
     {
         for(int i = 0; i < a.size(); i++)
@@ -323,41 +380,41 @@ public class AI implements MSWAgent
             b.add(a.get(i));
         }
     }
-    
+
     private String printHand(List<Card> cards)
     {
         StringBuilder output = new StringBuilder();
-        
+
         for(int i = 0; i < cards.size(); i++)
         {
             output.append(cards.get(i).toString() + ", ");
         }
-        
+
         return output.toString();
     }
-    
+
     // -------------------------------------------------------------------------    Data Structure
-    
     private class GameGraph
     {
         public List<Node> Nodes = new ArrayList<Node>();
-        
+
         public int Size()
         {
             return Nodes.size();
         }
-        
+
         public void AddNode(Node node)
         {
             Nodes.add(node);
         }
-        
+
         public Node GetNode(int i)
         {
             return Nodes.get(i);
-        }      
+        }
+
     }
-    
+
     private class Node
     {
         public Node Parent = null;
@@ -367,22 +424,24 @@ public class AI implements MSWAgent
 
         public Card[] Opponent1 = new Card[52];
         public Card[] Opponent2 = new Card[52];
-        
+
         public int Ratio = 0;
-        
+
         public int ChildrenSize()
         {
             return Children.size();
         }
-        
+
         public Node GetChild(int i)
         {
             return Children.get(i);
-        }  
-        
+        }
+
         public int HandSize()
         {
             return MyHand.size();
         }
+
     }
+
 }
