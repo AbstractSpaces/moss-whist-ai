@@ -5,6 +5,16 @@ package mossai;
 
 import java.util.*;
 
+// git pull
+
+// git pull -s ours
+
+// git puls -s theirs
+
+// git add .
+// git commit
+// git push origin master
+
 public class AI implements MSWAgent
 {
     // Associate each card with an integer for easy reference.
