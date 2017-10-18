@@ -80,6 +80,7 @@ public class AI implements MSWAgent
             
         }
         else return new Card[4];
+        return null;
     }
     // -------------------------------------------------------------------------
     /**
@@ -367,6 +368,10 @@ public class AI implements MSWAgent
 
         public Card[] Opponent1 = new Card[52];
         public Card[] Opponent2 = new Card[52];
+        
+        public int MyScore = 0;
+        public int Opscore1 = 0;
+        public int Opscore2 = 0;
         
         public int Ratio = 0;
         
