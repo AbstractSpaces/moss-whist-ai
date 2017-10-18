@@ -201,33 +201,34 @@ public class AI implements MSWAgent
     
     private Card greedyTurn(Card[] table, Card[] hand)
     {
+        // if there are cards on the table (played in this tick)
         if(table.length > 0)
         {
             Card lowestCard = hand[0];
-            Card highestCard = hand[0];
+            Card lowestCardTrump = null;
+            Card highestCardTrump = null;
             Card lowestCardSuit = null;
             Card highestCardSuit = null;
         
+            // we have to obey the suit played by the leader
             Suit tickSuit = table[0].suit;
             
+            // for each card in our hand
             for(int i = 0; i < hand.length; i++)
             {
+                // if the card matches the played suit
                 if(hand[i].suit == tickSuit)
                 {
-                    if(highestCardSuit != null)
+                    // if it is not the first card of that stuit that we found
+                    if(highestCardSuit != null && lowestCardSuit != null)
                     {
+                        // if it's the highest card of that suit in our hand
                         if(hand[i].rank > highestCardSuit.rank)
                         {
                             highestCardSuit = hand[i];
                         }
-                    }
-                    else
-                    {
-                        highestCardSuit = hand[i];
-                    }
-                    
-                    if(lowestCardSuit != null)
-                    {
+                        
+                        // if it is the lowest card of that suit in our hand
                         if(hand[i].rank < lowestCardSuit.rank)
                         {
                             lowestCardSuit = hand[i];
@@ -235,20 +236,91 @@ public class AI implements MSWAgent
                     }
                     else
                     {
+                        highestCardSuit = hand[i];
                         lowestCardSuit = hand[i];
                     }
                 }
-                
-                if(hand[i].rank > highestCard.rank)
+                else
                 {
-                    highestCard = hand[i];
-                }
-                if(hand[i].rank < lowestCard.rank)
-                {
-                    lowestCard = hand[i];
+                    // if it is a trump card
+                    if(hand[i].suit == Suit.SPADES)
+                    {
+                        // if it's the first trump we found
+                        if(highestCardTrump != null && lowestCardTrump != null)
+                        {
+                            // if it is the highest trump card
+                            if(hand[i].rank > highestCardTrump.rank)
+                            {
+                                highestCardTrump = hand[i];
+                            }
+                            // if it is the lowest trump card
+                            if(hand[i].rank < lowestCardTrump.rank)
+                            {
+                                lowestCardTrump = hand[i];
+                            }
+                        }
+                        else
+                        {
+                            // assign the first found trump card
+                            lowestCardTrump = hand[i];
+                            highestCardTrump = hand[i];
+                        }
+                    }
+                    else
+                    {
+                        // find the lowest card that is not a trump
+                        if(hand[i].rank < lowestCard.rank)
+                        {
+                            lowestCard = hand[i];
+                        }
+                    }
                 }
             }
-            return highestCard;
+            // assuming we have to play the suit
+            if(lowestCardSuit != null)
+            {
+                // check if we can beat what's on the table
+                for(int i = 0; i < table.length; i++)
+                {
+                    // if our card of the same suit can't beat what's already on the table
+                    if(highestCardSuit.rank < table[i].rank || (tickSuit != Suit.SPADES && table[i].suit == Suit.SPADES))
+                    {
+                        return lowestCardSuit;
+                    }
+                }
+                // otherwise we think that we can beat what is on the table
+                return highestCardSuit;
+            }
+            // if we don't have to play the suit
+            else
+            {
+                // if the suit we have to obey is trumps and we don't have it, we can't win no matter what
+                if(tickSuit == Suit.SPADES)
+                {
+                    return lowestCard;
+                }
+                else
+                {
+                    // if we are going last
+                    if(table.length == 2)
+                    {
+                        for(int i = 0; i < table.length; i++)
+                        {
+                            //if()
+                        }
+                    }
+                }
+                // check if we can play the low trump
+                    // if we are going third = no other trumps or
+                    // or if we care certain that the opponent is deffs playing the suit or doesnt have trumps
+                
+                // check if we can play the high trump
+                    // if we are going third,
+                    // or if we are certain that opponent is playing a trump and we can beat him
+                
+                // otherwise we get rid of the lowest card
+                return null;
+            }
         }
         else
         {
