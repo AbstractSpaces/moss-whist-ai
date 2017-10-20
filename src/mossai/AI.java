@@ -86,7 +86,11 @@ public class AI implements MSWAgent
         table = new Card[3];
         
         hand = new ArrayList[4];
-        for(ArrayList suit : hand) suit = new ArrayList(13);
+        hand[0] = new ArrayList<Card>();
+        hand[1] = new ArrayList<Card>();
+        hand[2] = new ArrayList<Card>();
+        hand[3] = new ArrayList<Card>();
+        //for(ArrayList suit : hand) suit = new ArrayList<Card>(13);
         pool = 52.0;
     }
 
@@ -95,8 +99,8 @@ public class AI implements MSWAgent
      */
     public void setup(String agentLeft, String agentRight)
     {
-        opponents[0].name = agentLeft;
-        opponents[1].name = agentRight;
+        //opponents[0].name = agentLeft;
+        //opponents[1].name = agentRight;
     }
 
     /**
@@ -110,7 +114,7 @@ public class AI implements MSWAgent
         pool -= deal.size();
         
         // Initialise beliefs about opponent hands.
-        for(int i = 0; i < 2; i++) opponents[i].init(deal, (order+i)%3);
+        //for(int i = 0; i < 2; i++) opponents[i].init(deal, (order+i)%3);
         
         // Sort cards based on rank before assigning them to hand.
         deal.sort(new CardCompare());
@@ -159,6 +163,11 @@ public class AI implements MSWAgent
      */
     public Card playCard()
     {
+        Card[] tab = played.toArray(new Card[0]);
+        
+        GreedyAi greed = new GreedyAi();
+        greed.greedyTurn(tab, hand[0], hand[1], hand[2], hand[3]);
+        
         return null;
     }
     
@@ -168,9 +177,11 @@ public class AI implements MSWAgent
      * @param card, the Card played.
      * @param agent, the name of the agent who played the card.
      */
+    
+    List<Card> played = new ArrayList<Card>();
     public void seeCard(Card card, String agent)
     {
-        
+        played.add(card);
     }
 
     /**

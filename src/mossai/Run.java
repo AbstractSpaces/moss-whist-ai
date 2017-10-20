@@ -14,7 +14,7 @@ public class Run
      */
     public static void main(String[] args)
     {
-        MossSideWhist game = new MossSideWhist(new RandomAgent(), new AI(), new RandomAgent());
+        MossSideWhist game = new MossSideWhist(new RandomAgent(), new RandomAgent(), new AI());
         game.playGame(1, System.out);
     }
     
