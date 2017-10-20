@@ -136,9 +136,11 @@ public class AI implements MSWAgent
         {
             while(i < 4)
             {
-                picks[i] = evalDiscard();
+                // tmp to see if it works
+                //picks[i] = evalDiscard();
+                picks[i] = new GreedyAi().findLowestCard(hand[0], hand[1], hand[2], hand[3]);
                 hand[suits.get(picks[i].suit)].remove(picks[i]);
-                i--;
+                i++;
             }
         }
         
@@ -166,9 +168,12 @@ public class AI implements MSWAgent
         Card[] tab = played.toArray(new Card[0]);
         
         GreedyAi greed = new GreedyAi();
-        greed.greedyTurn(tab, hand[0], hand[1], hand[2], hand[3]);
         
-        return null;
+        Card play = greed.greedyTurn(tab, hand[0], hand[1], hand[2], hand[3]);
+        
+        hand[suits.get(play.suit)].remove(play);
+        
+        return play;
     }
     
     /**
@@ -178,10 +183,11 @@ public class AI implements MSWAgent
      * @param agent, the name of the agent who played the card.
      */
     
-    List<Card> played = new ArrayList<Card>();
+    List<Card> played = new ArrayList<Card>(); 
     public void seeCard(Card card, String agent)
     {
         played.add(card);
+        if(played.size() > 2) played = new ArrayList<Card>();
     }
 
     /**

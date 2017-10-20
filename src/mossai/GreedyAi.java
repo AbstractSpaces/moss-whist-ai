@@ -19,8 +19,9 @@ public class GreedyAi
     
     public Card findLowestCard(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
     {
-        int index = 0;
         Card[] lowestCards = new Card[4];
+        int index = 0;
+        
         if(handH.size() > 0)
         {
             lowestCards[index] = handH.get(0);
@@ -41,17 +42,58 @@ public class GreedyAi
             lowestCards[index] = handS.get(0);
             index++;
         }
+        
         Card lowestCard = lowestCards[0];
         for(int i = 1; i < index; i++)
         {
-            if(lowestCard.rank > lowestCards[index].rank)
+            if(lowestCard.rank > lowestCards[i].rank)
             {
-                lowestCard = lowestCards[index];
+                lowestCard = lowestCards[i];
             }
         }
+        System.out.println("lowest: " + lowestCard.toString());
         return lowestCard;
     }
 
+    
+    public Card findHighestCard(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
+    {
+        Card[] highestCards = new Card[4];
+        int index = 0;
+        
+        if(handH.size() > 0)
+        {
+            highestCards[index] = handH.get(handH.size()-1);
+            index++;
+        }
+        if(handC.size() > 0)
+        {
+            highestCards[index] = handC.get(handC.size()-1);
+            index++;
+        }
+        if(handD.size() > 0)
+        {
+            highestCards[index] = handD.get(handD.size()-1);
+            index++;
+        }
+        if(handS.size() > 0)
+        {
+            highestCards[index] = handS.get(handS.size()-1);
+            index++;
+        }
+        
+        Card highestCard = highestCards[0];
+        for(int i = 1; i < index; i++)
+        {
+            if(highestCard.rank < highestCards[i].rank)
+            {
+                highestCard = highestCards[i];
+            }
+        }
+        System.out.println("highest: " + highestCard.toString());
+        return highestCard;
+    }
+    
     public Card playCardSuit(List<Card> selectedSuit, Card highestCardPlayed)
     {
         // Go through each one of the cards of that suit that we have 
@@ -68,21 +110,46 @@ public class GreedyAi
         return selectedSuit.get(0);
     }
     
-    public Card playCardTrump(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS, Card highestCard)
+    
+    
+    // eval functions
+    
+    public Card playCardTrump(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS, Card highestSpadeCard)
     {
         // Check if we can beat the spade
         for(int i = 0; i < handS.size(); i++)
         {
             // If we can beat the spade, play our spade
-            if(handS.get(i).rank > highestCard.rank)
+            if(handS.get(i).rank > highestSpadeCard.rank)
             {
                 return handS.get(i);
             }
         }
         // We can't beat the spade, play the smallest card
         return findLowestCard(handH, handC, handD, handS);    
-        
     }
+    
+    public boolean opponentHasSuit(Suit suit)
+    {
+        return false;
+    }
+    
+    
+    /*
+        Heuristic for evaluating what is in the opponents hand. 
+        Right now it is always paranoid.
+    */
+    public Card getOpponentsHighestCardSuit(Suit suit)
+    {
+        if(suit == Suit.HEARTS)
+            return Card.ACE_H;
+        if(suit == Suit.CLUBS)
+            return Card.ACE_C;        
+        if(suit == Suit.DIAMONDS)
+            return Card.ACE_D;
+        return Card.ACE_S;
+    }
+    
     
     public Card greedyTurn(Card[] table, List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
     {
@@ -91,7 +158,7 @@ public class GreedyAi
         {
             // We have to obey the suit played by the leader
             Suit tickSuit = table[0].suit;
-            List<Card> selectedSuit = handH;   
+            List<Card> selectedSuit;// = handH;   
             switch (tickSuit)
             {
                 case HEARTS:
@@ -109,7 +176,7 @@ public class GreedyAi
                     selectedSuit = handD;
                     break;
                 }
-                case SPADES:
+                default: case SPADES:
                 {
                     selectedSuit = handS;
                     break;
@@ -121,6 +188,7 @@ public class GreedyAi
             // If we are player 3
             if(table.length == 2)
             {
+                System.out.println("I'm player 3, table: " + table.length + " handH: " + handH.size() + " handC: " + handC.size() + " handD: " + handD.size() + " handS: " + handS.size());
                 // If we have to obey the suit
                 if(selectedSuitSize > 0)
                 {
@@ -156,14 +224,18 @@ public class GreedyAi
                         }
                     }
                     
+                    System.out.println("I'm obeying the suit. Highest Card on the table: " + highestCardPlayed.toString());
+                    
                     // If we have to play, but a spade has been played outside of it's suit
                     if(tickSuit != Suit.SPADES && highestCardPlayed.suit == Suit.SPADES)
                     {
+                        System.out.println("I can't win playing lowest obey suit");
                         // We can't win, play the lowest card
                         return selectedSuit.get(0);
                     }
                     else
                     {
+                        System.out.println("Play higher or lowest suit card");
                         // Play a higher card of the obeyed suit or lowest
                         return playCardSuit(selectedSuit, highestCardPlayed);
                     }
@@ -181,7 +253,7 @@ public class GreedyAi
                     else
                     {
                         // We don't have any spades either
-                        if(handS.size() != 0)
+                        if(handS.size() == 0)
                         {
                             // We can't win, get rid of the smallest card
                             return findLowestCard(handH, handC, handD, handS); // handS not needed
@@ -207,34 +279,39 @@ public class GreedyAi
             // If we are player 2 (p2)
             else
             {
-                boolean pobey = true;
-                
+                System.out.println("I'm player 2, table: " + table.length + " handH: " + handH.size() + " handC: " + handC.size() + " handD: " + handD.size() + " handS: " + handS.size());
                 // If we have to obey the suit
                 if(selectedSuitSize > 0)
-                {   
+                {
+                    System.out.println("I'm obeying the suit.");
                     // If we think that p3 has to obey too
-                    if(pobey = true)
+                    if(opponentHasSuit(tickSuit) == true)
                     {
-                        // get his highest card
-                        // Card highestCardPlayed = table[0].rank > p3.rank ? table[0] : p3;
-                        // return playCardSuit(selectedSuit, highestCardPlayed);
+                        System.out.println("I think p3 will also play this suit");
+                        // Get p3s highest card
+                        Card p3 = getOpponentsHighestCardSuit(tickSuit);
+                        // Find out which is higher
+                        Card highestCardPlayed = table[0].rank > p3.rank ? table[0] : p3;
+                        // Play a higher card or the lowest card if can't win
+                        return playCardSuit(selectedSuit, highestCardPlayed);
                     }
                     // If we think that p3 doesn't have to obey
                     else
                     {
-                        /* 
-                        if we think that p3 is going to play a spade
+                        // If we think that p3 is going to trump the obeyed suit
+                        if(tickSuit != Suit.SPADES && opponentHasSuit(Suit.SPADES) == true)
                         {
+                            System.out.println("I think p3 will play a trump");
                             // We can't win against a spade, play the lowest card
                             return selectedSuit.get(0);
                         }
                         // If p3 is not going to play a spade
                         else
                         {
-                            // play a higher card or lowest card of the suit
+                            System.out.println("I think p3 doesn't have this suit and he can't trump");
+                            // Play a higher card or the lowest card of the suit
                             return playCardSuit(selectedSuit, table[0]);
                         }
-                        */
                     }
                 }
                 // We don't have to obey the suit
@@ -244,12 +321,13 @@ public class GreedyAi
                     if(tickSuit == Suit.SPADES)
                     {
                         // We can't win, get rid of the smallest card
-                        return findLowestCard(handH, handC, handD, handS);
+                        return findLowestCard(handH, handC, handD, handS); // handS not needed
                     }
+                    // If spades are not the tick suit
                     else
                     {
                         // If we think that p3 has to obey
-                        if(pobey = true)
+                        if(opponentHasSuit(tickSuit) == true)
                         {
                             // If we can play a spade
                             if(handS.size() > 0)
@@ -267,13 +345,17 @@ public class GreedyAi
                         // If we think p3 doesn't have to obey the suit too
                         else
                         {
-                            /*
-                            If we think that p3 has spades
+                            // If we think that p3 has spades
+                            if(opponentHasSuit(Suit.SPADES) == true)
                             {
                                 // If we can play a spade
                                 if(handS.size() > 0)
                                 {
-                                    // If his spades are higher
+                                    // get p3s highest trump
+                                    Card p3 = getOpponentsHighestCardSuit(Suit.SPADES);
+                                    
+                                    // play a higher spade or the lowest card we have
+                                    return playCardTrump(handH, handC, handD, handS, p3);
                                 }
                                 else
                                 {
@@ -281,6 +363,7 @@ public class GreedyAi
                                     return findLowestCard(handH, handC, handD, handS);
                                 }
                             }
+                            // If we think that p3 doesn't have a spade
                             else
                             {
                                 // If we can play a spade
@@ -295,17 +378,18 @@ public class GreedyAi
                                     return findLowestCard(handH, handC, handD, handS);
                                 }
                             }
-                            */
                         }
                     }
                 }
-                return null;
             }
         }
-        // We are the leader
+        // As a leader, we want to play the highest card to keep on wining
         else
         {
-            return null;
+            // If we think that p2 or p3 have a higher card in that same suit
+            //return findLowestCard(handH, handC, handD, handS);
+            // else we can play
+            return findHighestCard(handH, handC, handD, handS);
         }
     }
             /*

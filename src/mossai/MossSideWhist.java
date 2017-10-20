@@ -82,9 +82,10 @@ public class MossSideWhist
   display(leader); display(left); display(right);  
     Card[] discard = agents.get(leader).discard();
     for(int i = 0; i<4; i++){
-      if(i>discard.length || !hands.get(leader).remove(discard[i]))
+      if(i>discard.length || !hands.get(leader).remove(discard[i])){
         hands.get(leader).remove(0);//if illegitimate discards, the 0 card is discarded.
         //could include a score penalty here as well.
+        System.out.println("illegitimate discard!!!!!");}
         display(leader);
     }
     String first = leader;
@@ -137,20 +138,50 @@ public class MossSideWhist
    * Returns the name of the winner.
    * @param first the name of the first player to play a card in this trick
    * */
-  public String trick(String first){
-    String second = left; String third = right;//calculate the position of each player.
-    if(first.equals(left)){second= right; third = leader;}
-    if(first.equals(right)){second=leader; third = left;}
-    Card[] trick = new Card[3];
-  display(first, true);
-    Card lead = agents.get(first).playCard();
-    ArrayList<Card> hand = hands.get(first);
-    if(!hand.remove(lead))
-      lead = hand.remove(rand.nextInt(hand.size()));
-    showCards(lead, first);
-  report.println(lead);
-  display(second, true);  
-    Card next = agents.get(second).playCard();
+    int ilTurns = 0;
+    public String trick(String first)
+    {
+        String second = left; String third = right;//calculate the position of each player.
+        if(first.equals(left))
+        {
+            second= right; third = leader;
+        }
+        if(first.equals(right))
+        {
+            second=leader; third = left;
+        }
+        
+        Card[] trick = new Card[3];
+        
+        display(first, true);
+        Card lead = agents.get(first).playCard();
+        ArrayList<Card> hand = hands.get(first);
+        if(!hand.remove(lead))
+        {
+            System.out.println("illegitimate: " + lead.toString());
+            lead = hand.remove(rand.nextInt(hand.size()));
+            if(agents.get(first).sayName().equals("Halo")) ilTurns++;
+        }
+        showCards(lead, first);
+        
+        report.println(lead);
+        
+        display(second, true);  
+        Card next = agents.get(second).playCard();
+        if(next != null)
+        {
+            if(!legal(next, second, lead.suit))
+            {
+                System.out.println("illegitimate: " + next.toString());
+                if(agents.get(second).sayName().equals("Halo")) ilTurns++;
+            }
+        } 
+        else
+        {
+            System.out.println("illegitimate: null");
+            if(agents.get(second).sayName().equals("Halo")) ilTurns++;
+        }
+    
     hand = hands.get(second);
     while(!legal(next, second, lead.suit))
       next = hand.get(rand.nextInt(hand.size()));
@@ -159,6 +190,22 @@ public class MossSideWhist
   report.println(next);
   display(third, true);  
     Card last = agents.get(third).playCard();
+    
+    if(last != null)
+    {
+        if(!legal(last, third, lead.suit))
+        {
+            System.out.println("illegitimate: " + last.toString());
+            if(agents.get(third).sayName().equals("Halo")) ilTurns++;
+        }
+    } 
+    else
+    {
+        System.out.println("illegitimate: null");
+        if(agents.get(third).sayName().equals("Halo")) ilTurns++;
+    }
+    
+    
     hand = hands.get(third);
     while(!legal(last, third, lead.suit))
       last = hand.get(rand.nextInt(hand.size()));
@@ -175,6 +222,7 @@ public class MossSideWhist
 
   //calculates the winner of a trick
   private String getWinner(Card lead, Card next, Card last, String first, String second, String third){
+      System.out.println("ill turns: " + ilTurns);
     if(lead.compareTo(next)<0 || !followsSuit(lead, next)){//first beats second
       if(lead.compareTo(last)<0 || !followsSuit(lead, last)){//first beats third
         return first;
