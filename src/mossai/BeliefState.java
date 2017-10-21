@@ -1,94 +1,104 @@
 package mossai;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 /** Encapsulation of the uncertain game state. */
 public class BeliefState
 {
-    public static final int STD_DEAL = 16;
-    public static final int LEAD_DEAL = 20;
+    public static final int DEAL = 16;
     
-    // Macros for card locations.
+    // Bitmasks for card locations.
     public static final int ACTIVE = 0;
     public static final int LEFT = 1;
     public static final int RIGHT = 2;
     public static final int OUT = 3;
     
+    /** Bitmasks for each of the above locations. */
+    private static final byte[] masks;
+    
+    static { masks = new byte[] {1, 2, 4, 8}; }
+    
     /**
-     * An array of the cards that could be in each location.
-     * Element [i][j] refers to card i in location j.
-     * -1 means confirmed not, 0 means maybe, 1 means confirmed yes.
+     * Represents the valid potential locations each card might occupy.
+     * The bit corresponding to that location is set 1 if the card might be there.
      */
-    private int[][] potential;
+    private byte[] valid;
     
     /** Number of uncertain cards in each location. */
     private int[] pools;
     
+    public BeliefState()
+    {
+        valid = new byte[Deck.DECK_SIZE];
+        Arrays.fill(valid, (byte)15);
+        pools = new int[] {DEAL, DEAL, DEAL, 4};
+    }
+    
     /** Return the probability of an opponent holding a certain card. */
     public double chance(Card c, int loc)
     {
-        int p = potential[loc][Deck.cardToInt(c)];
-        if(p < 0) return 0.0;
-        else if(p > 0) return 1.0;
+        int i = Deck.cardToInt(c);
+        byte locMask = masks[loc];
+        
+        // If this is a non valid location for the card.
+        if((valid[i] & locMask) == 0) return 0.0;
+        // If this is the only valid location for the card.
+        else if(valid[i] == locMask) return 1.0;
         else
         {
-            // Number of cards in the location that could be this card.
-            double num = pools[loc];
-            // Number of cards overall that could be this card.
-            double denom = 0.0;
-
-            for(int i = 0; i < 4; i++)
+            double numerator = 0.0;
+            double denominator = 0.0;
+            
+            for(int j = 0; j < 4; j++)
             {
-                if(potential[i][Deck.cardToInt(c)] == 0) denom += 1.0;
+                byte m = masks[j];
+                
+                if(m == locMask) numerator = (double)pools[j];
+                if((valid[i] & m) != 0) denominator += (double)pools[j];
             }
             
-            return num / denom;
+            return numerator / denominator;
         }
     }
     
-    /** Update the belief when a card is played. */
-    public void seeCard(Card c, int turn, Card lead)
+    /** Update the belief when a card is played from a location. */
+    public void cardPlayed(Card c, int loc, Card lead)
     {
-        int index = Deck.cardToInt(c);
+        int i = Deck.cardToInt(c);
+        byte locMask = masks[loc];
         
-        // Put in the discard pile.
-        potential[OUT][index] = 1;
-        // Remove potential card from all hands.
-        for(int i = 0; i < 3; i++) potential[i][index] = -1;
-        // Reduce number of cards in player's hand.
-        pools[turn]--;
-        confirm(c);
-
-        // See if player followed the lead and infer further removals.
-        if(c.suit != lead.suit)
+        // If the card wasn't known to be in that player's hand, there is now
+        // one less unknown card there.
+        if(valid[i] != locMask) pools[loc]--;
+        // The card is now known to be out of play.
+        valid[i] = masks[OUT];
+        
+        // TODO: Invalidate cards in suit if lead not followed.
+        //       Reduce pools if any cards gained certain location.
+    }
+    
+    public void includeHand(List<Card> hand, List<Card> discard, int player)
+    {
+        pools[player] = 0;
+        
+        for(Card c : hand)
         {
-            for(int i : Deck.suitRange(lead.suit))
+            int i = Deck.cardToInt(c);
+            valid[i] = masks[player];
+        }
+        
+        if(!discard.isEmpty())
+        {
+            pools[OUT] = 0;
+            
+            for(Card c : discard)
             {
-                potential[turn][i] = -1;
-                confirm(c);
+                int i = Deck.cardToInt(c);
+                valid[i] = masks[OUT];
             }
         }
-    }
-    
-    /** See if a card's location can be inferred. */
-    private void confirm(Card c)
-    {
-        int sum = 0;
-        int loc = -1;
         
-        // This will tell us if there is a confirmable location.
-        // Also remember the location of that 0.
-        for(int i = 0; i < 4; i++)
-        {
-            if(potential[i][Deck.cardToInt(c)] == 0) loc = i; 
-            else sum += potential[i][Deck.cardToInt(c)];
-        }
-        
-        if(sum == -3)
-        {
-            potential[loc][Deck.cardToInt(c)] = 1;
-            pools[loc]--;
-        }
+        // TODO: Reduce pools of other players if any cards gained certain location.
     }
 }
