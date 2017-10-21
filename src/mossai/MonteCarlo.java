@@ -115,7 +115,8 @@ public class MonteCarlo
                     
                     // save child's score into the parent node
                     parentNode.Parent.Wins += parentNode.Wins;
-
+                    parentNode.Parent.Playthroughs += parentNode.Playthroughs;
+                    
                     // get the parent of the current node
                     parentNode = parentNode.Parent;
                     
@@ -167,7 +168,11 @@ public class MonteCarlo
         boolean gameOver = false;
         
         while(true)
-        {            
+        {
+            // how to access belief state for me (AI)
+            
+            // and how for other players?
+            
             // p1 take the turn
             List<Card>[] hand1 = parent.State.hand1;
             playCard1 = GreedyAi.greedyTurn(new Card[0], hand1[0], hand1[1], hand1[2], hand1[3]);
@@ -184,6 +189,8 @@ public class MonteCarlo
             Node node = new Node();
             
             node.State = new SampleState(parent.State, playCard1);
+
+            node.Children.add(node);
             
             turnsCount++;
             if(gameOver == true)
