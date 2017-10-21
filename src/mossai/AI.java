@@ -6,10 +6,6 @@ import java.util.Map;
 
 public class AI implements MSWAgent
 {
-    public static final int AGENT = 0;
-    public static final int LEFT = 1;
-    public static final int RIGHT = 2;
-
     @Override
     public void setup(String agentLeft, String agentRight)
     {

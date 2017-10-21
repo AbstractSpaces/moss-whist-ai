@@ -7,6 +7,7 @@ public class Deck
 {
     public static final int DECK_SIZE = 52;
     public static final int SUIT_SIZE = 13;
+    public static final Suit TRUMP = Suit.SPADES;
     
     private static final HashMap<Suit, Integer> SUIT_MAP;
     private static final HashMap<Card, Integer> CARD_MAP;
@@ -42,6 +43,7 @@ public class Deck
         return range;
     }
     
+    public static int suitToInt(Suit s) { return SUIT_MAP.get(s); }
     public static int cardToInt(Card c) { return CARD_MAP.get(c); }
     public static Card intToCard(int i) { return CARD_ARRAY[i]; }
 }
