@@ -386,6 +386,10 @@ public class GreedyAi
         // As a leader, we want to play the highest card to keep on wining
         else
         {
+            // if we think we can beat p2 && p3
+            // else
+                // if risk worth taking 
+            
             // If we think that p2 or p3 have a higher card in that same suit
             //return findLowestCard(handH, handC, handD, handS);
             // else we can play
