@@ -22,7 +22,10 @@ public class BeliefState
     
     static { masks = new byte[] {1, 2, 4, 8}; }
     
-    /** The player to which this belief belongs. */
+    /**
+     * The player to which this belief belongs.
+     * Set -1 if the viewer is external to all players.
+     */
     public final int viewer;
     
     /**
@@ -35,7 +38,7 @@ public class BeliefState
     private final int[] unknowns;
     
     /** Create a blank belief for a new game. */
-    public BeliefState(int v, boolean[][] state)
+    public BeliefState(int v, int[] state)
     {
         viewer = v;
         valid = new byte[Deck.DECK_SIZE];
@@ -43,23 +46,61 @@ public class BeliefState
         // Invalidate cards from known invalid locations.
         for(int i = 0; i < Deck.DECK_SIZE; i++)
         {   
-            // The card is in the viewer's hand.
-            if(state[viewer][i]) valid[i] = masks[viewer];
-            // The viewer knows about the discards.
-            else if(viewer == LEADER)
+            valid[i] = 15;
+            
+            if(viewer != -1)
             {
-                // The card was discarded.
-                if(state[OUT][i]) valid[i] = masks[OUT];
-                // The card is in one of the opponent's hands.
-                else valid[i] = (byte)(masks[(viewer+1)%3] + masks[(viewer+2)%3]);
+                // If the card is in the viewer's hand.
+                if(state[i] == viewer) valid[i] = masks[viewer];
+                // If the viewer knows about the discards.
+                else if(viewer == LEADER)
+                {
+                    // If the card was discarded.
+                    if(state[i] == OUT) valid[i] = masks[OUT];
+                    // If the card is in one of the opponent's hands.
+                    else valid[i] -= (byte)(masks[(viewer+1)%3] + masks[(viewer+2)%3]);
+                }
+                // The card could be anywhere else.
+                else valid[i] -= masks[viewer];
             }
-            // The card could be anywhere else.
-            else valid[i] = (byte)(15 - masks[viewer]);
         }
         
         unknowns = new int[] {DEAL, DEAL, DEAL, 4};
+        if(viewer != -1) unknowns[viewer] = 0;
+        if(viewer == LEADER) unknowns[OUT] = 0;
+    }
+    
+    /**
+     * Incorporate a player's knowledge into an objective history to form a
+     * belief for them.
+     */
+    public BeliefState(int v, BeliefState history, int[] state)
+    {
+        viewer = v;
+        valid = Arrays.copyOf(history.valid, Deck.DECK_SIZE);
+        
+        unknowns = Arrays.copyOf(history.unknowns, 4);
         unknowns[viewer] = 0;
         if(viewer == LEADER) unknowns[OUT] = 0;
+        
+        // Invalidate cards from known invalid locations.
+        for(int i = 0; i < Deck.DECK_SIZE; i++)
+        {
+            // If the card is in the hand.
+            if(state[i] == viewer) valid[i] = masks[viewer];
+            // If the hand was a valid location but now isn't.
+            else if((valid[i] & masks[viewer]) != 0) valid[i] -= masks[i];
+            
+            // The leader has no uncertainty over discarded cards.
+            if(viewer == LEADER)
+            {
+                if(state[i] == OUT) valid[i] = masks[OUT];
+                // If the card was thought discarded but wasn't.
+                else if((valid[i] & masks[OUT]) != 0) valid[i] -= masks[OUT];
+            }
+            
+            // TODO: See if card location newly confirmed.
+        }
     }
     
     /** Create a clone of an existing BeliefState. */
@@ -117,10 +158,10 @@ public class BeliefState
     }
     
     /** Derive a sample game state from the belief. */
-    public boolean[][] sampleState()
+    public int[] sampleState()
     {
         Random gen = new Random();
-        boolean[][] state = new boolean[4][Deck.DECK_SIZE];
+        int[] state = new int[Deck.DECK_SIZE];
         
         // Assign a location to each card in the deck.
         for(Card c : Card.values())
@@ -137,7 +178,7 @@ public class BeliefState
                 // know the location for certain.
                 if(valid[i] == masks[loc])
                 {
-                    state[loc][i] = true;
+                    state[i] = loc;
                     break;
                 }
                 // We can skip ahead if this is an invalid location.
@@ -149,7 +190,7 @@ public class BeliefState
                     // p < upperBound it falls between the two bounds.
                     if(p < upperBound)
                     {
-                        state[loc][i] = true;
+                        state[i] = loc;
                         break;
                     }
                     else lowerBound = upperBound;

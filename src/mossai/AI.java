@@ -10,16 +10,16 @@ public class AI implements MSWAgent
     private int pos;
     
     /**
-     * The agent's belief about the opponent's cards, as well as the predicted
-     * beliefs of the opponents about the agent's cards.
+     * The agent's belief about the opponent's cards. Storing between tricks
+     * improves performance.
      */
-    private BeliefState[] beliefs;
+    private BeliefState belief;
     
     /**
-     * Representation of the agent's hand, with elements set true for each card
-     * in possession.
+     * A non-player specific belief from which the opponent's perspectives can
+     * be derived.
      */
-    private boolean hand[];
+    private BeliefState history;
     
     @Override
     public void setup(String agentLeft, String agentRight)
