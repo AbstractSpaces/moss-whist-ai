@@ -6,6 +6,21 @@ import java.util.Map;
 
 public class AI implements MSWAgent
 {
+    /** The agent's place in the turn order. */
+    private int pos;
+    
+    /**
+     * The agent's belief about the opponent's cards, as well as the predicted
+     * beliefs of the opponents about the agent's cards.
+     */
+    private BeliefState[] beliefs;
+    
+    /**
+     * Representation of the agent's hand, with elements set true for each card
+     * in possession.
+     */
+    private boolean hand[];
+    
     @Override
     public void setup(String agentLeft, String agentRight)
     {

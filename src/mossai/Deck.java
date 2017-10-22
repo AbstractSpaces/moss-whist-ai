@@ -2,12 +2,15 @@ package mossai;
 
 import java.util.HashMap;
 
-/** Collection of data and methods for iterating through cards. */
+/**
+ * Collection of data and methods for iterating through cards.
+ * @author Dylan Johnson
+ */
 public class Deck
 {
     public static final int DECK_SIZE = 52;
     public static final int SUIT_SIZE = 13;
-    public static final Suit TRUMP = Suit.SPADES;
+    static final Suit TRUMP = Suit.SPADES;
     
     private static final HashMap<Suit, Integer> SUIT_MAP;
     private static final HashMap<Card, Integer> CARD_MAP;
@@ -34,7 +37,7 @@ public class Deck
         
     }
     
-    public static int[] suitRange(Suit s)
+    static int[] suitRange(Suit s)
     {
         int[] range = new int[SUIT_SIZE];
         
@@ -43,7 +46,7 @@ public class Deck
         return range;
     }
     
-    public static int suitToInt(Suit s) { return SUIT_MAP.get(s); }
+    static int suitToInt(Suit s) { return SUIT_MAP.get(s); }
     public static int cardToInt(Card c) { return CARD_MAP.get(c); }
     public static Card intToCard(int i) { return CARD_ARRAY[i]; }
 }
