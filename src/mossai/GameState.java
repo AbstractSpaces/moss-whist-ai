@@ -9,6 +9,7 @@ import java.util.Arrays;
  */
 public class GameState
 {
+    private static Raptor agent;
     /** The player going first this trick. */
     private int first;
     /** The player currently taking their turn, having not yet played their card. */
@@ -21,15 +22,16 @@ public class GameState
     private final int[] scores;
     
     /** Construct a blank state for a new game. */
-    public GameState(int leader)
+    public GameState(Raptor ai, int leader)
     {
+        agent= ai;
         first = leader;
         turn = first;
         table = new Card[3];
         scores = new int[] {-8, -4, -4};
     }
     
-    /** Copy a state then advance it by one turn. */
+    /** Copy a state then advance it by one move. */
     public GameState(GameState prev, Card played)
     {
         first = prev.first;
@@ -82,7 +84,9 @@ public class GameState
     */
     private class Simulation
     {
-        private final Raptor agent;
+        /** The move that lead from the parent node to this one. */
+        private final Card prevMove;
+        
         private GameState sState;
         
         /** The beliefs held by the agent and the two simulated opponents. */
@@ -93,15 +97,15 @@ public class GameState
         private ArrayList<Simulation> children;
 
         /** Start a new tree from a sampled state. */
-        private Simulation(int[] sCards, GameState state, Raptor ai, BeliefState belief, BeliefState history)
+        private Simulation(int[] sCards, GameState state, BeliefState belief, BeliefState history)
         {
-            agent = ai;
-            sBeliefs = new BeliefState[3];
+            prevMove = null;
             sState = state;
+            sBeliefs = new BeliefState[3];
 
             for(int i = 0; i < 3; i++)
             {
-                if(i == agent.getLeader()) sBeliefs[i] = belief.clone();
+                if(i == agent.getPos()) sBeliefs[i] = belief.clone();
                 else sBeliefs[i] = new BeliefState(i, history, sCards);
             }
 
@@ -110,19 +114,17 @@ public class GameState
             children = null;
        }
         
-        /** Advance a simulation node by one move. */
+        /** Clone a previous node's state and enact a move by the agent. */
         private Simulation(Simulation prev, Card move)
         {
-            agent = prev.agent;
-            sState = new GameState(prev.sState, move);
+            prevMove = move;
+            sState = new GameState(prev.sState, prevMove);
             sBeliefs = new BeliefState[3];
-            
             for(int i = 0; i < 3; i++)
             {
                 sBeliefs[i] = prev.sBeliefs[i].clone();
-                sBeliefs[i].cardPlayed(move, prev.sState.turn, prev.sState.table[agent.getLeader()]);
+                sBeliefs[i].cardPlayed(move, agent.getPos(), prev.sState.table[prev.sState.first]);
             }
-            
             playthroughs = 0.0;
             wins = 0.0;
             children = null;
@@ -136,6 +138,42 @@ public class GameState
            // Predict the two opponent moves after that and modify the child.
            // with those moves.
            // Update score and table as appropriate.
+           if(children == null)
+           {
+               children = new ArrayList();
+               ArrayList<Card>[] hand = sBeliefs[agent.getPos()].getHand();
+               
+               // Determine the suits from which cards can be played.
+               int[] legal;
+               int leadSuit = Game.suitToInt(sState.table[first].suit);
+               
+               if(agent.getPos() == sState.first || hand[leadSuit].isEmpty())
+               {
+                   legal = new int[] {0, 1, 2, 3};
+               }
+               else legal = new int[] {leadSuit};
+               
+               for(int s : legal)
+               {
+                   for(Card c : hand[s])
+                   {
+                       Simulation child = new Simulation(this, c);
+                       // Simulate predicted opponent moves.
+                       child.predictOpponent();
+                       child.predictOpponent();
+                       children.add(child);
+                   }
+               }
+           }
+       }
+       
+       /** By assuming a fixed greedy opponent strategy, attempt to anticipate their move from this state. */
+       private void predictOpponent()
+       {
+           if(sState.turn != agent.getPos())
+           {
+               
+           }
        }
 
        /** Choose a child node as the next in a play out. */
@@ -158,7 +196,6 @@ public class GameState
                        best = i;
                    }
                }
-               
                return best;
            }
        }

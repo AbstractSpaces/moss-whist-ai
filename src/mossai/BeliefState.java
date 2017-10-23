@@ -1,5 +1,6 @@
 package mossai;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -24,6 +25,9 @@ public class BeliefState
      */
     public final int viewer;
     
+    /** The cards held by the viewer, collected and pre sorted for convenience. */
+    private ArrayList<Card>[] hand;
+    
     /**
      * Represents the valid potential locations each card might occupy.
      * The bit corresponding to that location is set 1 if the card might be there.
@@ -37,6 +41,7 @@ public class BeliefState
     public BeliefState()
     {
         viewer = -1;
+        hand = null;
         valid = new byte[Game.DECK_SIZE];
         Arrays.fill(valid, ANY);
         unknowns = new int[] {Game.DEAL, Game.DEAL, Game.DEAL, Game.DISCARDS};
@@ -49,18 +54,22 @@ public class BeliefState
     public BeliefState(int v, BeliefState history, int[] state)
     {
         viewer = v;
+        hand = new ArrayList[4];
+        for(int i = 0; i < 4; i++) hand[i] = new ArrayList();
         valid = Arrays.copyOf(history.valid, Game.DECK_SIZE);
-        
         unknowns = Arrays.copyOf(history.unknowns, 4);
         unknowns[viewer] = 0;
-        
         if(viewer == Game.LEADER) unknowns[Game.OUT] = 0;
         
-        // With new knowledge we can perform some invalidations.
+        // With new knowledge we can perform some invalidations and fill in the hand.
         for(int i = 0; i < Game.DECK_SIZE; i++)
         {
             // If the card is in the hand.
-            if(state[i] == viewer) valid[i] = MASKS[viewer];
+            if(state[i] == viewer)
+            {
+                valid[i] = MASKS[viewer];
+                hand[i / Game.SUIT_SIZE].add(Game.intToCard(i));
+            }
             // If the hand was a valid location but now isn't.
             else if(maybe(i, viewer)) valid[i] -= MASKS[i];
             
@@ -90,7 +99,11 @@ public class BeliefState
     {   
         int i = Game.cardToInt(c);
         
-        if(player == viewer) valid[i] = MASKS[Game.OUT];
+        if(player == viewer)
+        {
+            valid[i] = MASKS[Game.OUT];
+            hand[Game.suitToInt(c.suit)].remove(c);
+        }
         // If the viewer has received new knowledge.
         else
         {
@@ -163,6 +176,8 @@ public class BeliefState
         
         return state;
     }
+    
+    public ArrayList<Card>[] getHand() { return hand; }
     
     /** Return true if the given card is in the given location. */
     public boolean hasCard(int loc, int card) { return valid[card] == MASKS[loc]; }

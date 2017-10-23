@@ -127,5 +127,5 @@ public class Raptor implements MSWAgent
     @Override
     public String sayName() { return names[0]; }
     
-    public int getLeader() { return pos; }
+    public int getPos() { return pos; }
 }
