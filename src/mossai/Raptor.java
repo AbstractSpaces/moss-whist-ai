@@ -1,7 +1,5 @@
 package mossai;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +15,8 @@ public class Raptor implements MSWAgent
     
     /** Map of player names to their positions. */
     private HashMap<String, Integer> players;
+    
+    private GameState state;
     
     /**
      * The agent's belief about the opponent's cards. Storing between tricks
@@ -51,6 +51,7 @@ public class Raptor implements MSWAgent
         pos = -1;
         names = new String[] {"Clever Girl", "", ""};
         players = new HashMap(3);
+        state = null;
         belief = null;
         history = new BeliefState();
         
@@ -72,6 +73,7 @@ public class Raptor implements MSWAgent
     public void seeHand(List<Card> deal, int order)
     {
         pos = order;
+        state = new GameState(order);
         for(int i = 0; i < 3; i++) players.put(names[i], (order+i)%3);
         belief = new BeliefState(order, history, Game.CardstoInts(deal, order));
     }
@@ -89,103 +91,41 @@ public class Raptor implements MSWAgent
         // TODO: Generate multiple samples from belief.
         // Run MonteCarlo on each, select move with the highest average success across all samples.
         // Called belief.cardplayed and history.cardPlayed.
+        // Update state.
     }
 
     @Override
     public void seeCard(Card card, String agent)
     {
-        belief.cardPlayed(card, players.get(agent), table.get(0));
-        history.cardPlayed(card, players.get(agent), table.get(0));
+        belief.cardPlayed(card, players.get(agent), state.getLead());
+        history.cardPlayed(card, players.get(agent), state.getLead());
+        state = new GameState(state, card);
     }
 
     @Override
     public void seeResult(String winner)
     {
-        
+        // Verify that state is working properly.
+        if(state.getFirst() != players.get(winner)) System.out.println("Trick over but state not set properly.");
     }
 
     @Override
     public void seeScore(Map<String, Integer> scoreboard)
     {
+        // Verify that state is working properly.
+        int[] scores = state.getScores();
         
+        for(String n : names)
+        {
+            if(scores[players.get(n)] != scoreboard.get(n))
+            {
+                System.out.println("Score incorrect for " + n + ".");
+            }
+        }
     }
 
     @Override
     public String sayName() { return names[0]; }
     
-    /**
-    * Encapsulates the state of a simulated game for use with Monte Carlo.
-    * @author Dylan Johnson
-    */
-    private class Simulation
-    {
-       /** The beliefs held by the agent and the two simulated opponents. */
-       private BeliefState[] sBeliefs;
-
-       private ArrayList<Card> sTable;
-       private int[] sScores;
-       private int sFirst;
-
-       private double playthroughs;
-       private double wins;
-       private ArrayList<Simulation> children;
-
-       /** Start a new tree from a sampled state. */
-       private Simulation(int[] sState, int f)
-       {
-           sScores = Arrays.copyOf(scores, 3);
-           sBeliefs = new BeliefState[3];
-
-           for(int i = 0; i < 3; i++)
-           {
-               if(i == pos) sBeliefs[i] = belief.clone();
-               else sBeliefs[i] = new BeliefState(i, history, sState);
-           }
-
-           sTable = new ArrayList(3);
-           
-           sFirst = f;
-           
-           playthroughs = 0.0;
-           wins = 0.0;
-           children = null;
-       }
-
-       /** Generate the children of a node on the tree. */
-       private void expand()
-       {
-           // Enumerate legal moves, initialise child array to correct size.
-           // Clone the node and modify it with the move represented by each child.
-           // Predict the two opponent moves after that and modify the child
-           // with those moves.
-           // Update score and table as appropriate.
-       }
-
-       /** Choose a child node as the next in a play out. */
-       private int next()
-       {
-           // Game over, roll back up the tree.
-           if(children.isEmpty()) return -1;
-           else
-           {
-               int best = 0;
-               double max = 0;
-               
-               for(int i = 0; i < children.size(); i++)
-               {
-                   double u = children.get(i).UTC(playthroughs);
-                   
-                   if(u > max)
-                   {
-                       max = u;
-                       best = i;
-                   }
-               }
-               
-               return best;
-           }
-       }
-       
-       private double UTC(double p) { return wins / playthroughs + bias * Math.sqrt(Math.log(p) / playthroughs); }
-    }
+    public int getLeader() { return pos; }
 }
