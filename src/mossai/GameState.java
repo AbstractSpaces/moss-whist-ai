@@ -10,8 +10,11 @@ import java.util.Arrays;
 public class GameState
 {
     private static Raptor agent;
+    private static int pos;
+    
     /** The player going first this trick. */
     private int first;
+    
     /** The player currently taking their turn, having not yet played their card. */
     private int turn;
     
@@ -25,6 +28,7 @@ public class GameState
     public GameState(Raptor ai, int leader)
     {
         agent= ai;
+        pos = agent.getPos();
         first = leader;
         turn = first;
         table = new Card[3];
@@ -32,23 +36,51 @@ public class GameState
     }
     
     /** Copy a state then advance it by one move. */
-    public GameState(GameState prev, Card played)
+    private GameState(GameState old)
     {
-        first = prev.first;
-        turn = prev.turn;
-        table = Arrays.copyOf(prev.table, 3);
-        scores = Arrays.copyOf(prev.scores, 3);
-        advance(played);
+        first = old.first;
+        turn = old.turn;
+        table = Arrays.copyOf(old.table, 3);
+        scores = Arrays.copyOf(old.scores, 3);
     }
+    
+    /** Use a fixed, greedy strategy to determine the active player's move from a state. */
+    public static Card greedyEval(GameState state, BeliefState belief)
+    {
+        
+    }
+    
+    /** Use Monte Carlo tree search to evaluate the best move from a state. */
+    public static Card monteCarlo(GameState state, BeliefState belief, BeliefState history)
+    {
+        int[] sample = belief.sampleState();
+        
+        Simulation root = state.new Simulation(sample, belief, history);
+        root.expand();
+        
+        // Run the search.
+        for(int i = 0; i < agent.MCsamples; i++) root.playOut();
+        
+        // Identify the best card.
+        Simulation best = root.children.get(0);
+        for(Simulation child : root.children)
+        {
+            if(child.wins / child.playthroughs > best.wins / best.playthroughs) best = child;
+        }
+        return best.prevMove;
+    }
+    
+    public GameState clone() { return new GameState(this); }
     
     public int getFirst() { return first; }
     
     public int[] getScores() { return Arrays.copyOf(scores, 3); }
     
     public Card getLead() { return table[first]; }
+
     
     /** Move the state forward by one turn. */
-    private void advance(Card played)
+    public void advance(Card played)
     {
         table[turn] = played;
         turn = (turn + 1) % 3;
@@ -87,26 +119,26 @@ public class GameState
         /** The move that lead from the parent node to this one. */
         private final Card prevMove;
         
-        private GameState sState;
+        private GameState state;
         
         /** The beliefs held by the agent and the two simulated opponents. */
-        private BeliefState[] sBeliefs;
+        private BeliefState[] beliefs;
 
         private double playthroughs;
         private double wins;
         private ArrayList<Simulation> children;
 
         /** Start a new tree from a sampled state. */
-        private Simulation(int[] sCards, GameState state, BeliefState belief, BeliefState history)
+        private Simulation(int[] sCards, BeliefState belief, BeliefState history)
         {
             prevMove = null;
-            sState = state;
-            sBeliefs = new BeliefState[3];
+            state = GameState.this;
+            beliefs = new BeliefState[3];
 
             for(int i = 0; i < 3; i++)
             {
-                if(i == agent.getPos()) sBeliefs[i] = belief.clone();
-                else sBeliefs[i] = new BeliefState(i, history, sCards);
+                if(i == pos) beliefs[i] = belief.clone();
+                else beliefs[i] = new BeliefState(i, history, sCards);
             }
 
             playthroughs = 0.0;
@@ -118,12 +150,13 @@ public class GameState
         private Simulation(Simulation prev, Card move)
         {
             prevMove = move;
-            sState = new GameState(prev.sState, prevMove);
-            sBeliefs = new BeliefState[3];
+            state = prev.state.clone();
+            state.advance(move);
+            beliefs = new BeliefState[3];
             for(int i = 0; i < 3; i++)
             {
-                sBeliefs[i] = prev.sBeliefs[i].clone();
-                sBeliefs[i].cardPlayed(move, agent.getPos(), prev.sState.table[prev.sState.first]);
+                beliefs[i] = prev.beliefs[i].clone();
+                beliefs[i].cardPlayed(move, pos, prev.state.table[prev.state.first]);
             }
             playthroughs = 0.0;
             wins = 0.0;
@@ -141,16 +174,13 @@ public class GameState
            if(children == null)
            {
                children = new ArrayList();
-               ArrayList<Card>[] hand = sBeliefs[agent.getPos()].getHand();
+               ArrayList<Card>[] hand = beliefs[pos].getHand();
                
                // Determine the suits from which cards can be played.
                int[] legal;
-               int leadSuit = Game.suitToInt(sState.table[first].suit);
+               int leadSuit = Game.suitToInt(state.table[first].suit);
                
-               if(agent.getPos() == sState.first || hand[leadSuit].isEmpty())
-               {
-                   legal = new int[] {0, 1, 2, 3};
-               }
+               if(pos == state.first || hand[leadSuit].isEmpty()) legal = new int[] {0, 1, 2, 3};
                else legal = new int[] {leadSuit};
                
                for(int s : legal)
@@ -158,29 +188,31 @@ public class GameState
                    for(Card c : hand[s])
                    {
                        Simulation child = new Simulation(this, c);
+                       
                        // Simulate predicted opponent moves.
-                       child.predictOpponent();
-                       child.predictOpponent();
+                       for(int i = 1; i < 3; i++)
+                       {
+                           int opponent = (pos + i) % 3;
+                           child.state.advance(GameState.greedyEval(child.state, child.beliefs[opponent]));
+                       }
+                       
                        children.add(child);
                    }
                }
            }
        }
-       
-       /** By assuming a fixed greedy opponent strategy, attempt to anticipate their move from this state. */
-       private void predictOpponent()
-       {
-           if(sState.turn != agent.getPos())
-           {
-               
-           }
-       }
 
        /** Choose a child node as the next in a play out. */
-       private int next()
-       {
+       private boolean playOut()
+       {   
            // Game over, roll back up the tree.
-           if(children.isEmpty()) return -1;
+           if(children.isEmpty())
+           {
+               // See if the agent won the game.
+               if(agent.drawWins) return scores[pos] >= scores[(pos+1)%3] && scores[pos] >= scores[(pos+2)%3];
+               else return scores[pos] > scores[(pos+1)%3] && scores[pos] > scores[(pos+2)%3];
+           }
+           // Continue the play out.
            else
            {
                int best = 0;
@@ -196,7 +228,15 @@ public class GameState
                        best = i;
                    }
                }
-               return best;
+               
+               children.get(best).expand();
+               
+               if(children.get(best).playOut())
+               {
+                   wins++;
+                   return true;
+               }
+               else return false;
            }
        }
        

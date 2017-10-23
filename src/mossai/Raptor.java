@@ -11,10 +11,10 @@ public class Raptor implements MSWAgent
     private int pos;
     
     /** Names of players, left to right from the agent. */
-    private String[] names;
+    private final String[] names;
     
     /** Map of player names to their positions. */
-    private HashMap<String, Integer> players;
+    private final HashMap<String, Integer> players;
     
     private GameState state;
     
@@ -28,25 +28,28 @@ public class Raptor implements MSWAgent
      * A non-player specific belief from which the opponent's perspectives can
      * be derived.
      */
-    private BeliefState history;
+    private final BeliefState history;
     
     // Parameters for modification via reinforcement learning.
     /** Bias constant for Monte Carlo play outs. */
     public final int bias;
     
-    /** Number of sample states to run Monte Carlo tree search on. */
-    private final int MC_runs;
+    /** Whether to treat draws as wins in Monte Carlo playouts. */
+    public final boolean drawWins;
+    
+    /** How long to keep running Monte Carlo on samples each turn. */
+    public final long searchTime;
     
     /** Number of play outs to sample in each Monte Carlo search. */
-    private final int MC_samples;
+    public final int MCsamples;
     
     /** The probability threshold above which to treat as certain that an opponent possesses a card. */
-    private final double positive;
+    public final double positive;
     
     /** The probability threshold below which to treat as certain that an opponent does not possess a card. */
-    private final double negative;
+    public final double negative;
     
-    public Raptor(int b, int mcr, int mcs, double p, double n)
+    public Raptor(int b, boolean dw, long t, int mcs, double p, double n)
     {
         pos = -1;
         names = new String[] {"Clever Girl", "", ""};
@@ -56,8 +59,9 @@ public class Raptor implements MSWAgent
         history = new BeliefState();
         
         bias = b;
-        MC_runs = mcr;
-        MC_samples = mcs;
+        drawWins = dw;
+        searchTime = t;
+        MCsamples = mcs;
         positive = p;
         negative = n;
     }
@@ -73,7 +77,7 @@ public class Raptor implements MSWAgent
     public void seeHand(List<Card> deal, int order)
     {
         pos = order;
-        state = new GameState(order);
+        state = new GameState(this, order);
         for(int i = 0; i < 3; i++) players.put(names[i], (order+i)%3);
         belief = new BeliefState(order, history, Game.CardstoInts(deal, order));
     }
@@ -88,19 +92,31 @@ public class Raptor implements MSWAgent
     @Override
     public Card playCard()
     {
-        // TODO: Generate multiple samples from belief.
-        // Run MonteCarlo on each, select move with the highest average success across all samples.
-        // Called belief.cardplayed and history.cardPlayed.
-        // Update state.
+        Card best = null;
+        long start = System.nanoTime();
+ /*       
+        // A record of how many times each card was recommended by a Monte Carlo search.
+        HashMap<Card, Integer> results = new HashMap();
+        
+        while(System.nanoTime() - start < searchTime)
+        {
+            Card c = GameState.monteCarlo(state, belief, history);
+            
+            if(results.get(c) == null) results.put(c, 1);
+            else results.put(c, results.get(c) + 1);
+        }
+        
+        for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
+  */      
+        // Temp version.
+        best = GameState.greedyEval(state, belief);
+        
+        update(best, pos);
+        return best;
     }
 
     @Override
-    public void seeCard(Card card, String agent)
-    {
-        belief.cardPlayed(card, players.get(agent), state.getLead());
-        history.cardPlayed(card, players.get(agent), state.getLead());
-        state = new GameState(state, card);
-    }
+    public void seeCard(Card card, String agent) { update(card, players.get(agent)); }
 
     @Override
     public void seeResult(String winner)
@@ -128,4 +144,11 @@ public class Raptor implements MSWAgent
     public String sayName() { return names[0]; }
     
     public int getPos() { return pos; }
+    
+    private void update(Card played, int player)
+    {
+        belief.cardPlayed(played, player, state.getLead());
+        history.cardPlayed(played, player, state.getLead());
+        state.advance(played);
+    }
 }

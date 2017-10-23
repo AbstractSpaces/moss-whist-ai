@@ -25,7 +25,7 @@ public class BeliefState
      */
     public final int viewer;
     
-    /** The cards held by the viewer, collected and pre sorted for convenience. */
+    /** The cards held by the viewer, collected and pre-sorted for convenience. */
     private ArrayList<Card>[] hand;
     
     /**
