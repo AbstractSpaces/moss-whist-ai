@@ -9,18 +9,14 @@ import java.util.Random;
  */
 public class BeliefState
 {
-    public static final int DEAL = 16;
+    /** Bit masks for each of the above locations. */
+    private static final byte[] MASKS = new byte[] {1, 2, 4, 8};
     
-    // Bitmasks for card locations.
-    public static final int LEADER = 0;
-    public static final int LEFT = 1;
-    public static final int RIGHT = 2;
-    public static final int OUT = 3;
+    /** The fifth bit is set 1 until a card's location is confirmed. */
+    private static final byte TBC = 16;
     
-    /** Bitmasks for each of the above locations. */
-    private static final byte[] masks;
-    
-    static { masks = new byte[] {1, 2, 4, 8}; }
+    /** Macro for setting a card's location completely unknown. */
+    private static final byte ANY = 31;
     
     /**
      * The player to which this belief belongs.
@@ -38,36 +34,12 @@ public class BeliefState
     private final int[] unknowns;
     
     /** Create a blank belief for a new game. */
-    public BeliefState(int v, int[] state)
+    public BeliefState()
     {
-        viewer = v;
-        valid = new byte[Deck.DECK_SIZE];
-        
-        // Invalidate cards from known invalid locations.
-        for(int i = 0; i < Deck.DECK_SIZE; i++)
-        {   
-            valid[i] = 15;
-            
-            if(viewer != -1)
-            {
-                // If the card is in the viewer's hand.
-                if(state[i] == viewer) valid[i] = masks[viewer];
-                // If the viewer knows about the discards.
-                else if(viewer == LEADER)
-                {
-                    // If the card was discarded.
-                    if(state[i] == OUT) valid[i] = masks[OUT];
-                    // If the card is in one of the opponent's hands.
-                    else valid[i] -= (byte)(masks[(viewer+1)%3] + masks[(viewer+2)%3]);
-                }
-                // The card could be anywhere else.
-                else valid[i] -= masks[viewer];
-            }
-        }
-        
-        unknowns = new int[] {DEAL, DEAL, DEAL, 4};
-        if(viewer != -1) unknowns[viewer] = 0;
-        if(viewer == LEADER) unknowns[OUT] = 0;
+        viewer = -1;
+        valid = new byte[Game.DECK_SIZE];
+        Arrays.fill(valid, ANY);
+        unknowns = new int[] {Game.DEAL, Game.DEAL, Game.DEAL, Game.DISCARDS};
     }
     
     /**
@@ -77,29 +49,31 @@ public class BeliefState
     public BeliefState(int v, BeliefState history, int[] state)
     {
         viewer = v;
-        valid = Arrays.copyOf(history.valid, Deck.DECK_SIZE);
+        valid = Arrays.copyOf(history.valid, Game.DECK_SIZE);
         
         unknowns = Arrays.copyOf(history.unknowns, 4);
         unknowns[viewer] = 0;
-        if(viewer == LEADER) unknowns[OUT] = 0;
         
-        // Invalidate cards from known invalid locations.
-        for(int i = 0; i < Deck.DECK_SIZE; i++)
+        if(viewer == Game.LEADER) unknowns[Game.OUT] = 0;
+        
+        // With new knowledge we can perform some invalidations.
+        for(int i = 0; i < Game.DECK_SIZE; i++)
         {
             // If the card is in the hand.
-            if(state[i] == viewer) valid[i] = masks[viewer];
+            if(state[i] == viewer) valid[i] = MASKS[viewer];
             // If the hand was a valid location but now isn't.
-            else if((valid[i] & masks[viewer]) != 0) valid[i] -= masks[i];
+            else if(maybe(i, viewer)) valid[i] -= MASKS[i];
             
             // The leader has no uncertainty over discarded cards.
-            if(viewer == LEADER)
+            if(viewer == Game.LEADER)
             {
-                if(state[i] == OUT) valid[i] = masks[OUT];
+                if(state[i] == Game.OUT) valid[i] = MASKS[Game.OUT];
                 // If the card was thought discarded but wasn't.
-                else if((valid[i] & masks[OUT]) != 0) valid[i] -= masks[OUT];
+                else if(maybe(i, Game.OUT)) valid[i] -= MASKS[Game.OUT];
             }
             
-            // TODO: See if card location newly confirmed.
+            // See if card location newly confirmed.
+            confirm(i);
         }
     }
     
@@ -107,50 +81,39 @@ public class BeliefState
     private BeliefState(BeliefState old)
     {
         viewer = old.viewer;
-        valid = Arrays.copyOf(old.valid, Deck.DECK_SIZE);
+        valid = Arrays.copyOf(old.valid, Game.DECK_SIZE);
         unknowns = Arrays.copyOf(old.unknowns, 4);
     }
     
     /** Update the belief when a card is played. */
     public void cardPlayed(Card c, int player, Card lead)
     {   
-        int i = Deck.cardToInt(c);
+        int i = Game.cardToInt(c);
         
-        if(player == viewer) valid[i] = masks[OUT];
+        if(player == viewer) valid[i] = MASKS[Game.OUT];
         // If the viewer has received new knowledge.
         else
         {
             // If the card wasn't known to be in that player's hand, there is
             // now one less unknown card there.
-            if(valid[i] != masks[player]) unknowns[player]--;
+            if(valid[i] != MASKS[player]) unknowns[player]--;
             
             // The card is now known to be out of play.
-            valid[i] = masks[OUT];
+            valid[i] = MASKS[Game.OUT];
 
             // If the player didn't follow the lead suit, infer that they have
             // none of that suit.
-            if(c.suit != Deck.TRUMP && lead != null && c.suit != lead.suit)
+            if(c.suit != Game.TRUMP && lead != null && c.suit != lead.suit)
             {
                 // Iterate through cards in the lead suit.
-                for(int j : Deck.suitRange(lead.suit))
+                for(int j : Game.suitRange(lead.suit))
                 {
                     // If the card hasn't already been invalidated.
-                    if((valid[j] & masks[player]) != 0)
+                    if(maybe(j, player))
                     {
                         // Invalidate the card from this player's hand.
-                        valid[j] -= masks[player];
-                        
-                        // See if there is only one remaining valid location
-                        // for this card.
-                        for(int loc = 0; loc < 4; loc++)
-                        {
-                            if(valid[loc] == masks[loc])
-                            {
-                                // There is one less unknown card here.
-                                unknowns[loc]--;
-                                break;
-                            }
-                        }
+                        valid[j] -= MASKS[player];
+                        confirm(j);
                     }
                 }
             }
@@ -161,12 +124,12 @@ public class BeliefState
     public int[] sampleState()
     {
         Random gen = new Random();
-        int[] state = new int[Deck.DECK_SIZE];
+        int[] state = new int[Game.DECK_SIZE];
         
         // Assign a location to each card in the deck.
         for(Card c : Card.values())
         {
-            int i = Deck.cardToInt(c);
+            int i = Game.cardToInt(c);
             double p = gen.nextDouble();
             double upperBound = 0.0;
             double lowerBound = 0.0;
@@ -176,15 +139,15 @@ public class BeliefState
             {
                 // We want to avoid imprecise comparisons of doubles when we
                 // know the location for certain.
-                if(valid[i] == masks[loc])
+                if(hasCard(loc, i))
                 {
                     state[i] = loc;
                     break;
                 }
                 // We can skip ahead if this is an invalid location.
-                else if((valid[i] & masks[loc]) != 0)
+                else if(maybe(i, loc))
                 {
-                    upperBound = chance(c, loc) + lowerBound;
+                    upperBound = lowerBound + chance(c, loc);
 
                     // We have already ruled out p < lowerBound, so if
                     // p < upperBound it falls between the two bounds.
@@ -201,6 +164,9 @@ public class BeliefState
         return state;
     }
     
+    /** Return true if the given card is in the given location. */
+    public boolean hasCard(int loc, int card) { return valid[card] == MASKS[loc]; }
+    
     /** Create a copy of a BeliefState for assigning to a tree Node. */
     @Override
     public BeliefState clone() { return new BeliefState(this); }
@@ -208,21 +174,52 @@ public class BeliefState
     /** Return the probability of a card being in a location. */
     private double chance(Card c, int loc)
     {
-        int i = Deck.cardToInt(c);
+        int i = Game.cardToInt(c);
         double numerator = 0.0;
         double denominator = 0.0;
         
         // Scan through the locations.
         for(int j = 0; j < 4; j++)
         {
-            byte m = masks[j];
-            if(m == masks[loc]) numerator = (double)unknowns[j];
+            if(j == loc) numerator = (double)unknowns[j];
             // If j is a valid location for the card.
             // We only want to consider the unknown cards in a location
             // if the card in question might be located there.
-            if((valid[i] & m) != 0) denominator += (double)unknowns[j];
+            if(maybe(Game.cardToInt(c), j)) denominator += (double)unknowns[j];
         }
 
         return numerator / denominator;
+    }
+    
+    /** Returns true if the card might be in the given location. */
+    private boolean maybe(int card, int loc) { return (valid[card] & MASKS[loc]) == MASKS[loc]; }
+    
+    /** See if new knowledge allows confirming a card's location. */
+    private void confirm(int card)
+    {
+        // If the card was already confirmed, skip the checks.
+        if((valid[card] & TBC) == TBC)
+        {
+            if(valid[card] == MASKS[Game.LEADER] + TBC)
+            {
+                valid[card] = MASKS[Game.LEADER];
+                unknowns[Game.LEADER]--;
+            }
+            else if(valid[card] == MASKS[Game.LEFT] + TBC)
+            {
+                valid[card] = MASKS[Game.LEFT];
+                unknowns[Game.LEFT]--;
+            }
+            else if(valid[card] == MASKS[Game.RIGHT] + TBC)
+            {
+                valid[card] = MASKS[Game.RIGHT];
+                unknowns[Game.RIGHT]--;
+            }
+            else if(valid[card] == MASKS[Game.OUT] + TBC)
+            {
+                valid[card] = MASKS[Game.OUT];
+                unknowns[Game.OUT]--;
+            }
+        }
     }
 }
