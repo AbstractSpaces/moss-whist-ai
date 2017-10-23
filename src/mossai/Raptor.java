@@ -32,7 +32,7 @@ public class Raptor implements MSWAgent
     
     // Parameters for modification via reinforcement learning.
     /** Bias constant for Monte Carlo play outs. */
-    private final int bias;
+    public final int bias;
     
     /** Number of sample states to run Monte Carlo tree search on. */
     private final int MC_runs;
