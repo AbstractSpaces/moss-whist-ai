@@ -7,8 +7,33 @@ import java.util.Map;
 /** An agent (hopefully) capable of intelligently playing Moss Side Whist. */
 public class Raptor implements MSWAgent
 {
-    /** The agent's place relative to the leader. */
-    public final int pos;
+    /** Bias constant for Monte Carlo play outs. */
+    public static final double BIAS;
+    
+    /** Whether to treat draws as wins in Monte Carlo play outs. */
+    public static final boolean DRAW_WINS;
+    
+    /** How long to keep running Monte Carlo on samples each turn, in milliseconds. */
+    public static final int SEARCH_TIME;
+    
+    /** Number of play outs to sample in each Monte Carlo search. */
+    public static final int MC_SAMPLES;
+    
+    /** The probability threshold above which to treat as certain that an opponent possesses a card. */
+    public static final double POSITIVE;
+    
+    /** The probability threshold below which to treat as certain that an opponent does not possess a card. */
+    public static final double NEGATIVE;
+    
+    static
+    {
+        BIAS = Math.sqrt(2.0);
+        DRAW_WINS = false;
+        SEARCH_TIME = 190;
+        MC_SAMPLES = 10;
+        POSITIVE = 100.0;
+        NEGATIVE = 0.0;
+    }
     
     /** Names of players, left to right from the agent. */
     private final String[] names;
@@ -18,52 +43,11 @@ public class Raptor implements MSWAgent
     
     private GameState state;
     
-    /**
-     * The agent's belief about the opponent's cards. Storing between tricks
-     * improves performance.
-     */
-    private BeliefState belief;
-    
-    /**
-     * A non-player specific belief from which the opponent's perspectives can
-     * be derived.
-     */
-    private final BeliefState history;
-    
-    // Parameters for modification via reinforcement learning.
-    /** Bias constant for Monte Carlo play outs. */
-    public final int bias;
-    
-    /** Whether to treat draws as wins in Monte Carlo playouts. */
-    public final boolean drawWins;
-    
-    /** How long to keep running Monte Carlo on samples each turn. */
-    public final long searchTime;
-    
-    /** Number of play outs to sample in each Monte Carlo search. */
-    public final int MCsamples;
-    
-    /** The probability threshold above which to treat as certain that an opponent possesses a card. */
-    public final double positive;
-    
-    /** The probability threshold below which to treat as certain that an opponent does not possess a card. */
-    public final double negative;
-    
-    public Raptor(int b, boolean dw, long t, int mcs, double p, double n)
+    public Raptor()
     {
-        pos = -1;
         names = new String[] {"Clever Girl", "", ""};
         players = new HashMap(3);
         state = null;
-        belief = null;
-        history = new BeliefState();
-        
-        bias = b;
-        drawWins = dw;
-        searchTime = t;
-        MCsamples = mcs;
-        positive = p;
-        negative = n;
     }
     
     @Override
@@ -76,10 +60,8 @@ public class Raptor implements MSWAgent
     @Override
     public void seeHand(List<Card> deal, int order)
     {
-        pos = order;
-        state = new GameState(this, order);
+        state = new GameState(order, deal);
         for(int i = 0; i < 3; i++) players.put(names[i], (order+i)%3);
-        belief = new BeliefState(order, history, Game.CardstoInts(deal, order));
     }
 
     @Override
@@ -98,9 +80,9 @@ public class Raptor implements MSWAgent
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
-        while(System.nanoTime() - start < searchTime)
+        while(System.nanoTime() - start < SEARCH_TIME * 1000000)
         {
-            Card c = GameState.monteCarlo(state, belief, history);
+            Card c = GameState.monteCarlo();
             
             if(results.get(c) == null) results.put(c, 1);
             else results.put(c, results.get(c) + 1);
@@ -109,14 +91,14 @@ public class Raptor implements MSWAgent
         for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
   */      
         // Temp version.
-        best = GameState.greedyEval(state, belief);
+        best = GameState.greedyEval();
         
-        update(best, pos);
+        state.advance(best);
         return best;
     }
 
     @Override
-    public void seeCard(Card card, String agent) { update(card, players.get(agent)); }
+    public void seeCard(Card card, String agent) { state.advance(card); }
 
     @Override
     public void seeResult(String winner)
@@ -142,11 +124,4 @@ public class Raptor implements MSWAgent
 
     @Override
     public String sayName() { return names[0]; }
-    
-    private void update(Card played, int player)
-    {
-        belief.cardPlayed(played, player, state.getLead());
-        history.cardPlayed(played, player, state.getLead());
-        state.advance(played);
-    }
 }

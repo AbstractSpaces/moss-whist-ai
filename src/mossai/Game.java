@@ -49,16 +49,6 @@ public class Game
         
     }
     
-    /** Fetch the indexes relating to cards of a given suit. */
-    static int[] suitRange(Suit s)
-    {
-        int[] range = new int[SUIT_SIZE];
-        
-        for(int i = 0; i < SUIT_SIZE; i++) range[i] = SUIT_MAP.get(s) + i;
-        
-        return range;
-    }
-    
     static int suitToInt(Suit s) { return SUIT_MAP.get(s); }
     
     public static int cardToInt(Card c) { return CARD_MAP.get(c); }
@@ -74,4 +64,8 @@ public class Game
     }
     
     public static Card intToCard(int i) { return CARD_ARRAY[i]; }
+    
+    public static int intToSuit(int i) { return i / SUIT_SIZE; }
+    
+    public static int intToRank(int i) { return i % SUIT_SIZE; }
 }
