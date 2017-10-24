@@ -8,7 +8,7 @@ import java.util.Map;
 public class Raptor implements MSWAgent
 {
     /** The agent's place relative to the leader. */
-    private int pos;
+    public final int pos;
     
     /** Names of players, left to right from the agent. */
     private final String[] names;
@@ -142,8 +142,6 @@ public class Raptor implements MSWAgent
 
     @Override
     public String sayName() { return names[0]; }
-    
-    public int getPos() { return pos; }
     
     private void update(Card played, int player)
     {

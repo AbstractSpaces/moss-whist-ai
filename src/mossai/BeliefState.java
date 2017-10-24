@@ -215,22 +215,22 @@ public class BeliefState
         // If the card was already confirmed, skip the checks.
         if((valid[card] & TBC) == TBC)
         {
-            if(valid[card] == MASKS[Game.LEADER] + TBC)
+            if(valid[card] - TBC == MASKS[Game.LEADER])
             {
                 valid[card] = MASKS[Game.LEADER];
                 unknowns[Game.LEADER]--;
             }
-            else if(valid[card] == MASKS[Game.LEFT] + TBC)
+            else if(valid[card] - TBC == MASKS[Game.LEFT] + TBC)
             {
                 valid[card] = MASKS[Game.LEFT];
                 unknowns[Game.LEFT]--;
             }
-            else if(valid[card] == MASKS[Game.RIGHT] + TBC)
+            else if(valid[card] - TBC == MASKS[Game.RIGHT] + TBC)
             {
                 valid[card] = MASKS[Game.RIGHT];
                 unknowns[Game.RIGHT]--;
             }
-            else if(valid[card] == MASKS[Game.OUT] + TBC)
+            else if(valid[card] - TBC == MASKS[Game.OUT] + TBC)
             {
                 valid[card] = MASKS[Game.OUT];
                 unknowns[Game.OUT]--;

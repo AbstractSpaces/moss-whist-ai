@@ -10,10 +10,9 @@ import java.util.Arrays;
 public class GameState
 {
     private static Raptor agent;
-    private static int pos;
     
-    /** The player going first this trick. */
-    private int first;
+    /** The indices of players in their turn order for this trick. */
+    private int[] order;
     
     /** The player currently taking their turn, having not yet played their card. */
     private int turn;
@@ -28,17 +27,16 @@ public class GameState
     public GameState(Raptor ai, int leader)
     {
         agent= ai;
-        pos = agent.getPos();
-        first = leader;
-        turn = first;
+        order = new int[] {leader, (leader+1)%3, (leader+2)%3};
+        turn = order[0];
         table = new Card[3];
         scores = new int[] {-8, -4, -4};
     }
     
-    /** Copy a state then advance it by one move. */
+    /** Copy a state. */
     private GameState(GameState old)
     {
-        first = old.first;
+        order= Arrays.copyOf(old.order, 3);
         turn = old.turn;
         table = Arrays.copyOf(old.table, 3);
         scores = Arrays.copyOf(old.scores, 3);
@@ -47,7 +45,35 @@ public class GameState
     /** Use a fixed, greedy strategy to determine the active player's move from a state. */
     public static Card greedyEval(GameState state, BeliefState belief)
     {
+        ArrayList<Card>[] hand = belief.getHand();
         
+        // Evaluation for the first player.
+        if(state.turn == state.order[0])
+        {
+            
+        }
+        else
+        {
+            Card winning = state.table[state.order[0]];
+            Suit leadSuit = winning.suit;
+            
+            // Evaluation for the second player.
+            if(state.turn == state.order[1])
+            {
+
+            }
+            // Evaluation for the third player.
+            else
+            {
+                
+                
+                // If the player has to follow suit.
+                if(!hand[Game.suitToInt(leadSuit)].isEmpty())
+                {
+
+                }
+            }
+        }
     }
     
     /** Use Monte Carlo tree search to evaluate the best move from a state. */
@@ -72,11 +98,11 @@ public class GameState
     
     public GameState clone() { return new GameState(this); }
     
-    public int getFirst() { return first; }
+    public int getPlayer(int o) { return order[o]; }
     
     public int[] getScores() { return Arrays.copyOf(scores, 3); }
     
-    public Card getLead() { return table[first]; }
+    public Card getLead() { return table[order[0]]; }
 
     
     /** Move the state forward by one turn. */
@@ -85,14 +111,14 @@ public class GameState
         table[turn] = played;
         turn = (turn + 1) % 3;
         
-        // If trick over, update score, clear table, set first and turn to winner.
-        if(turn == first)
+        // If trick over, update score, clear table, set order. 
+        if(turn == order[0])
         {
-            int best = first;
+            int best = order[0];
             
             for(int i = 1; i < 3; i++)
             {
-                int p = (first+i)%3;
+                int p = order[i];
                 boolean beat = false;
                 
                 if(table[best].suit == Game.TRUMP)
@@ -106,7 +132,9 @@ public class GameState
             
             Arrays.fill(table, null);
             scores[best]++;
-            first = best;
+            order[0] = best;
+            order[1] = (best + 1) % 3;
+            order[2]= (best + 2) % 3;
         }
     }
     
@@ -137,7 +165,7 @@ public class GameState
 
             for(int i = 0; i < 3; i++)
             {
-                if(i == pos) beliefs[i] = belief.clone();
+                if(i == agent.pos) beliefs[i] = belief.clone();
                 else beliefs[i] = new BeliefState(i, history, sCards);
             }
 
@@ -152,12 +180,14 @@ public class GameState
             prevMove = move;
             state = prev.state.clone();
             state.advance(move);
+            
             beliefs = new BeliefState[3];
             for(int i = 0; i < 3; i++)
             {
                 beliefs[i] = prev.beliefs[i].clone();
-                beliefs[i].cardPlayed(move, pos, prev.state.table[prev.state.first]);
+                beliefs[i].cardPlayed(move, agent.pos, prev.state.table[prev.state.order[0]]);
             }
+            
             playthroughs = 0.0;
             wins = 0.0;
             children = null;
@@ -174,14 +204,20 @@ public class GameState
            if(children == null)
            {
                children = new ArrayList();
-               ArrayList<Card>[] hand = beliefs[pos].getHand();
+               ArrayList<Card>[] hand = beliefs[agent.pos].getHand();
                
                // Determine the suits from which cards can be played.
                int[] legal;
-               int leadSuit = Game.suitToInt(state.table[first].suit);
                
-               if(pos == state.first || hand[leadSuit].isEmpty()) legal = new int[] {0, 1, 2, 3};
-               else legal = new int[] {leadSuit};
+               int follow = -1;
+               if(agent.pos != state.order[0])
+               {
+                   follow = Game.suitToInt(state.table[state.order[0]].suit);
+                   if(hand[follow].isEmpty()) follow = -1;
+               }
+               
+               if(follow == -1) legal = new int[] {0, 1, 2, 3};
+               else legal = new int[] {follow};
                
                for(int s : legal)
                {
@@ -192,7 +228,7 @@ public class GameState
                        // Simulate predicted opponent moves.
                        for(int i = 1; i < 3; i++)
                        {
-                           int opponent = (pos + i) % 3;
+                           int opponent = (agent.pos + i) % 3;
                            child.state.advance(GameState.greedyEval(child.state, child.beliefs[opponent]));
                        }
                        
@@ -209,8 +245,8 @@ public class GameState
            if(children.isEmpty())
            {
                // See if the agent won the game.
-               if(agent.drawWins) return scores[pos] >= scores[(pos+1)%3] && scores[pos] >= scores[(pos+2)%3];
-               else return scores[pos] > scores[(pos+1)%3] && scores[pos] > scores[(pos+2)%3];
+               if(agent.drawWins) return scores[agent.pos] >= scores[(agent.pos+1)%3] && scores[agent.pos] >= scores[(agent.pos+2)%3];
+               else return scores[agent.pos] > scores[(agent.pos+1)%3] && scores[agent.pos] > scores[(agent.pos+2)%3];
            }
            // Continue the play out.
            else
