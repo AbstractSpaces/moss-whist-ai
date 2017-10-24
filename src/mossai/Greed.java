@@ -1,23 +1,24 @@
-/**
- *
- * @author Martin
- */
 package mossai;
 
 import java.util.*;
 
-public class GreedyAi
+public class Greed
 {
-    public Card minCard(Card a, Card b)
+    
+    public Greed()
+    {
+    }
+    
+    public static Card minCard(Card a, Card b)
     {
         return a.rank > b.rank ? b : a;
     }
-    public Card maxCard(Card a, Card b)
+    public static Card maxCard(Card a, Card b)
     {
         return a.rank < b.rank ? b : a;
     }
     
-    public Card findLowestCard(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
+    public static Card findLowestCard(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
     {
         Card[] lowestCards = new Card[4];
         int index = 0;
@@ -56,7 +57,7 @@ public class GreedyAi
     }
 
     
-    public Card findHighestCard(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
+    public static Card findHighestCard(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
     {
         Card[] highestCards = new Card[4];
         int index = 0;
@@ -94,7 +95,7 @@ public class GreedyAi
         return highestCard;
     }
     
-    public Card playCardSuit(List<Card> selectedSuit, Card highestCardPlayed)
+    public static Card playCardSuit(List<Card> selectedSuit, Card highestCardPlayed)
     {
         // Go through each one of the cards of that suit that we have 
         for(int i = 0; i < selectedSuit.size() ; i++)
@@ -114,7 +115,7 @@ public class GreedyAi
     
     // eval functions
     
-    public Card playCardTrump(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS, Card highestSpadeCard)
+    public static Card playCardTrump(List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS, Card highestSpadeCard)
     {
         // Check if we can beat the spade
         for(int i = 0; i < handS.size(); i++)
@@ -129,7 +130,7 @@ public class GreedyAi
         return findLowestCard(handH, handC, handD, handS);    
     }
     
-    public boolean opponentHasSuit(Suit suit)
+    public static boolean opponentHasSuit(Suit suit)
     {
         return false;
     }
@@ -139,7 +140,7 @@ public class GreedyAi
         Heuristic for evaluating what is in the opponents hand. 
         Right now it is always paranoid.
     */
-    public Card getOpponentsHighestCardSuit(Suit suit)
+    public static Card getOpponentsHighestCardSuit(Suit suit)
     {
         if(suit == Suit.HEARTS)
             return Card.ACE_H;
@@ -151,7 +152,7 @@ public class GreedyAi
     }
     
     
-    public Card greedyTurn(Card[] table, List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
+    public static Card takeTurn(Card[] table, List<Card> handH, List<Card> handC, List<Card> handD, List<Card> handS)
     {
         // if there are cards on the table (played in this tick)
         if(table.length > 0)
