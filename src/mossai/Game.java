@@ -9,21 +9,21 @@ import java.util.List;
  * Moss Side Whist.
  * @author Dylan Johnson
  */
-public class Game
+class Game
 {
     // Data relating to the rules of MSW.
-    public static final int DEAL = 16;
-    public static final int DISCARDS = 4;
+    static final int DEAL = 16;
+    static final int DISCARDS = 4;
     static final Suit TRUMP = Suit.SPADES;
     
-    public static final int LEADER = 0;
-    public static final int LEFT = 1;
-    public static final int RIGHT = 2;
-    public static final int OUT = 3;
+    static final int LEADER = 0;
+    static final int LEFT = 1;
+    static final int RIGHT = 2;
+    static final int OUT = 3;
     
     // Data relating to the deck of cards.
-    public static final int DECK_SIZE = 52;
-    public static final int SUIT_SIZE = 13;
+    static final int DECK_SIZE = 52;
+    static final int SUIT_SIZE = 13;
     
     private static final HashMap<Suit, Integer> SUIT_MAP;
     private static final HashMap<Card, Integer> CARD_MAP;
@@ -49,29 +49,30 @@ public class Game
         
     }
     
-    /** Fetch the indexes relating to cards of a given suit. */
-    static int[] suitRange(Suit s)
-    {
-        int[] range = new int[SUIT_SIZE];
-        
-        for(int i = 0; i < SUIT_SIZE; i++) range[i] = SUIT_MAP.get(s) + i;
-        
-        return range;
-    }
-    
+    /** Take a suit, return an index for it. */
     static int suitToInt(Suit s) { return SUIT_MAP.get(s); }
     
-    public static int cardToInt(Card c) { return CARD_MAP.get(c); }
+    /** Take a suit, return the index of its lowest card. */
+    static int suitBegins(Suit s) { return SUIT_MAP.get(s) * SUIT_SIZE; }
     
-    public static int[] CardstoInts(List<Card> hand, int player)
-    {
-        int[] cards = new int[DECK_SIZE];
-        Arrays.fill(cards, -1);
-        
-        for(Card c : hand) cards[cardToInt(c)] = player;
-        
-        return cards;
-    }
+    /** Take a suit and return the index of its highest card. */
+    static int suitEnds(Suit s) { return SUIT_MAP.get(s) * SUIT_SIZE + SUIT_SIZE - 1; }
     
-    public static Card intToCard(int i) { return CARD_ARRAY[i]; }
+    /** Take a card, return its index. */
+    static int cardToInt(Card c) { return CARD_MAP.get(c); }
+    
+    /** Take a card, return its suit's index. */
+    static int cardToSuit(Card c) { return SUIT_MAP.get(c.suit); }
+    
+    /** Take a card, return its rank's index. */
+    static int cardToRank(Card c) { return c.rank - 2; }
+    
+    /** Take a card index, return its suit's index. */
+    static int intToSuit(int c) { return c / SUIT_SIZE; }
+    
+    /** Take a card, return its index. */
+    static Card intToCard(int c) { return CARD_ARRAY[c]; }
+    
+    /** Take a card index, return its rank's index. */
+    static int intToRank(int c) { return c % SUIT_SIZE; }
 }
