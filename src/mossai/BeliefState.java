@@ -3,32 +3,28 @@ package mossai;
 import java.util.Arrays;
 import java.util.Random;
 
-/**
- * Encapsulation of the uncertain game state.
- * @author Dylan Johnson
- */
-public final class BeliefState
+/** Encapsulation of subjective data from a certain perspective. */
+final class BeliefState
 {
     /** Macro for setting a card's location completely unknown. */
     private static final int ALL_LOCS = (1 << 6) - 1;
     
-    /** Macro for checking if a card's location is confirmed. */
-    private static final int TBC = 1 << 5;
+    /** The fifth bit is set 1 until a card's location is certain. */
+    private static final int TBC = 5;
     
     /** Macro for setting all cards of a suit potentially occupying a location. */
-    private static final int ALL_RANKS = (1 << 13) - 1;
+    private static final int ALL_RANKS = (1 << (Game.SUIT_SIZE + 1)) - 1;
     
     /** Macro for checking number of unknown cards. */
     private static final int UNKNOWN = 4;
     
-    /**
-     * The player to which this belief belongs.
-     * Set -1 if the viewer is external to all players.
-     */
+    /** The viewpoint from which this belief is defined. */
     private final int viewer;
     
-    // By using both of the below representations, we can perform most
-    // operations in constant time.
+    /*
+     * By using both of the below representations, we can perform most llokup
+     * operations without the need for loops.
+     */
     
     /**
      * Represents the potential locations each card might occupy.
@@ -40,20 +36,20 @@ public final class BeliefState
      * Represents the potential cards that might be in each location.
      * Each cards[i] relates to location i.
      * For j = 0 to 3, cards[i][j] represents the potential cards of suit j.
-     * For j = 4, cards[i][j] stored the number of unknown cards in location i.
+     * cards[i][4] stores the number of unknown cards in location c.
      */
     private final int[][] cards;
     
     /** Create a blank belief for a new game. */
-    public BeliefState()
+    BeliefState()
     {
-        viewer = -1;
+        viewer = Game.OUT;
         
         locs = new int[Game.DECK_SIZE];
         Arrays.fill(locs, ALL_LOCS);
         
-        cards = new int[4][4];
-        for(int i = 0; i < 4; i++)
+        cards = new int[4][5];
+        for(int i = 0; i < cards.length; i++)
         {
             Arrays.fill(cards[i], ALL_RANKS);
             cards[i][UNKNOWN] = Game.DEAL;
@@ -65,94 +61,178 @@ public final class BeliefState
      * Incorporate a player's knowledge into an objective history to form a
      * belief for them.
      */
-    public BeliefState(int v, BeliefState history, int[] state)
+    BeliefState(int v, BeliefState history, int[] cardState)
     {
         viewer = v;
         locs = Arrays.copyOf(history.locs, Game.DECK_SIZE);
         
-        cards = new int[4][4];
-        for(int i = 0; i < 4; i++) cards[i] = Arrays.copyOf(history.cards[i], 5);
+        cards = new int[history.cards.length][history.cards[0].length];
+        for(int i = 0; i < cards.length; i++)
+			cards[i] = Arrays.copyOf(history.cards[i], cards[0].length);
+		
         cards[viewer][UNKNOWN] = 0;
-        if(viewer == Game.LEADER) cards[Game.OUT][UNKNOWN] = 0;
+        if(viewer == Game.LEADER)
+			cards[Game.OUT][UNKNOWN] = 0;
         
         // With new knowledge we can perform some invalidations and fill in the hand.
-        for(int i = 0; i < Game.DECK_SIZE; i++)
+        for(int c = 0; c < Game.DECK_SIZE; c++)
         {
             // If the card is in the hand.
-            if(state[i] == viewer) locs[i] = 1 << viewer;
+            if(cardState[c] == viewer)
+				locs[c] = 1 << viewer;
             // If the hand was a potential location but now isn't.
-            else if(maybe(i, viewer))
+            else if(maybeHas(Game.intToCard(c), viewer))
             {
-                locs[i] -= 1 << viewer;
-                cards[viewer][Game.intToSuit(i)] -= 1 << Game.intToRank(i);
+                locs[c] -= 1 << viewer;
+                cards[viewer][Game.intToSuit(c)] -= 1 << Game.intToRank(c);
             }
             
             // The leader has no uncertainty over discarded cards.
             if(viewer == Game.LEADER)
             {
-                if(state[i] == Game.OUT) locs[i] = 1 << Game.OUT;
+                if(cardState[c] == Game.OUT)
+					locs[c] = 1 << Game.OUT;
                 // If the card was thought discarded but wasn't.
-                else if(maybe(i, Game.OUT))
+                else if(maybeHas(Game.intToCard(c), Game.OUT))
                 {
-                    locs[i] -= 1 << Game.OUT;
-                    cards[Game.OUT][Game.intToSuit(i)] -= 1 << Game.intToRank(i);
+                    locs[c] -= 1 << Game.OUT;
+                    cards[Game.OUT][Game.intToSuit(c)] -= 1 << Game.intToRank(c);
                 }
             }
             
             // See if card location newly confirmed.
-            confirm(i);
+            confirm(c);
         }
     }
     
     /** Create a clone of an existing BeliefState. */
-    public BeliefState(BeliefState old)
+    BeliefState(BeliefState old)
     {
         viewer = old.viewer;
         locs = Arrays.copyOf(old.locs, Game.DECK_SIZE);
         
-        cards = new int[4][4];
-        for(int i = 0; i < 4; i++) cards[i] = Arrays.copyOf(old.cards[i], 5);
+        cards = new int[old.cards.length][old.cards[0].length];
+        for(int i = 0; i < cards.length; i++)
+			cards[i] = Arrays.copyOf(old.cards[i], cards[0].length);
+    }
+    
+    /** Return the highest card of a suit likely to be located somewhere. */
+    Card highest(Suit s, int loc)
+    {
+        if(maybeHas(s, loc))
+			for(int c = Game.suitEnds(s); c >= Game.suitBegins(s); c--)
+                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
+                    return Game.intToCard(c);
+		
+        return null;
+    }
+    
+    /** Return the lowest card of a suit likely to be located somewhere. */
+    Card lowest(Suit s, int loc)
+    {
+        if(maybeHas(s, loc))
+            for(int c = Game.suitBegins(s); c >= Game.suitEnds(s); c++)
+                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
+                    return Game.intToCard(c);
+		
+        return null;
+    }
+    
+    /**
+     * Return true if a location is likely to have a higher ranked card in the
+     * same suit.
+     */
+    boolean hasHigher(Card c, int loc)
+    {
+        // A quick check to see if there is even a chance of returning true.
+        if(cards[loc][Game.cardToSuit(c)] > (1 << Game.cardToRank(c)))
+            for(int i = Game.cardToInt(c); i <= Game.suitEnds(c.suit); i++)
+                if(chance(c, loc) > Raptor.POSITIVE)
+                    return true;
+		
+        return false;
+    }
+    
+    /** Returns true if the card might be in the given location. */
+    boolean maybeHas(Card c, int loc) { return (locs[Game.cardToInt(c)] & (1 << loc)) != 0; }
+    
+    /** Returns true if there might be any cards of the given suit in a location. */
+    boolean maybeHas(Suit s, int loc) { return cards[loc][Game.suitToInt(s)] > 0; }
+    
+    /** Returns true if a card is definitely in a location. */
+    boolean certain(Card c, int loc) { return locs[Game.cardToInt(c)] == (1 << loc); }
+	
+	/** Returns true if the viewer is holding a given card. */
+	boolean here(Card c) { return locs[Game.cardToInt(c)] == (1 << viewer); }
+	
+	/** Returns true if the viewer is holding at least one card in a given suit. */
+	boolean here(Suit s) { return cards[viewer][Game.suitToInt(s)] > 0; }
+    
+    /** Return the probability of a card being in a location. */
+    private double chance(Card c, int loc)
+    {
+        if(!tbc(c))
+        {
+            if(certain(c, loc))
+				return 1.0;
+            else
+				return 0.0;
+        }
+        else
+        {
+            double numerator = 0.0;
+            double denominator = 0.0;
+            
+            // Scan through the locations.
+            for(int l = 0; l < 4; l++)
+            {
+                if(l == loc)
+					numerator = (double)cards[l][UNKNOWN];
+                // We only want to consider the unknown cards in a location
+                // if the card in question might be located there.
+                // If l is a valid location for the card.
+                if(maybeHas(c, l))
+					denominator += (double)cards[l][UNKNOWN];
+            }
+            
+            return numerator / denominator;
+        }
     }
     
     /** Update the belief when a card is played. */
-    public void cardPlayed(Card move, int player, Card lead)
-    {
-        int i = Game.cardToInt(move);
-        int s = Game.intToSuit(i);
-        int r = move.rank - 2;
-        
+    void cardPlayed(Card c, int loc, Card lead)
+    {   
         // The card is now known to be out of that hand.
-        cards[player][s] -= 1 << r;
+        cards[loc][Game.cardToSuit(c)] -= 1 << Game.cardToRank(c);
         
-        if(player == viewer) locs[i] = 1 << Game.OUT;
+        if(loc == viewer)
+			locs[Game.cardToInt(c)] = 1 << Game.OUT;
         // If the viewer has received new knowledge.
         else
         {
             // If the card wasn't known to be in that player's hand, there is
             // now one less unknown card there.
-            if(maybe(i, TBC))
-            {
-                cards[player][UNKNOWN]--;
-                locs[i] = 1 << Game.OUT;
-            }
+            if(tbc(c))
+				cards[loc][UNKNOWN]--;
+            
+            locs[Game.cardToInt(c)] = 1 << Game.OUT;
 
             // If the player didn't follow the lead suit, infer that they have
             // none of that suit.
-            if(move.suit != Game.TRUMP && lead != null && move.suit != lead.suit)
+            if(lead != null && c.suit != lead.suit && c.suit != Game.TRUMP)
             {
-                cards[player][Game.intToSuit(i)] = 0;
-                
+                // Remove all cards in the suit from the belief about their hand.
+                cards[loc][Game.cardToSuit(c)] = 0;
+				
                 // Iterate through cards in the lead suit.
-                int ls = Game.intToSuit(Game.cardToInt(lead));
-                
-                for(int j = ls*Game.SUIT_SIZE; j < (ls+1)*Game.SUIT_SIZE; j++)
+                for(int i = Game.suitBegins(lead.suit); i <= Game.suitEnds(lead.suit); i++)
                 {
                     // If the card hasn't already been invalidated.
-                    if(maybe(j, player))
+                    if(maybeHas(Game.intToCard(i), loc))
                     {
                         // Invalidate the card from this player's hand.
-                        locs[j] -= 1 << player;
-                        confirm(j);
+                        locs[i] -= 1 << loc;
+                        confirm(i);
                     }
                 }
             }
@@ -160,102 +240,75 @@ public final class BeliefState
     }
     
     /** Derive a sample game state from the belief. */
-    public int[] sampleState()
+    int[] sampleState()
     {
         Random gen = new Random();
-        int[] state = new int[Game.DECK_SIZE];
+        int[] sample = new int[Game.DECK_SIZE];
+        
+        // The difference between these bounds acts as the weighting for the
+        // probability of a card being assigned to a location.
+        double upperBound;
+        double lowerBound = 0.0;
         
         // Assign a location to each card in the deck.
-        for(Card c : Card.values())
+        for(int c = 0; c < Game.DECK_SIZE; c++)
         {
-            int i = Game.cardToInt(c);
             double p = gen.nextDouble();
-            double upperBound;
-            double lowerBound = 0.0;
             
             // Consider the probability of the card being in each location.
-            for(int loc = 0; loc < 4; loc++)
+            for(int l = 0; l < 4; l++)
             {
-                // We want to avoid imprecise comparisons of doubles when we
-                // know the location for certain.
-                if(certainly(loc, i))
+                // We can skip forward if the location is certain.
+                if(certain(Game.intToCard(c), l))
                 {
-                    state[i] = loc;
+                    sample[c] = l;
                     break;
                 }
                 // We can skip ahead if this is an invalid location.
-                else if(maybe(i, loc))
+                else if(maybeHas(Game.intToCard(c), l))
                 {
-                    upperBound = lowerBound + chance(c, loc);
+                    upperBound = lowerBound + chance(Game.intToCard(c), l);
 
                     // We have already ruled out p < lowerBound, so if
                     // p < upperBound it falls between the two bounds.
                     if(p < upperBound)
                     {
-                        state[i] = loc;
+                        sample[c] = l;
                         break;
                     }
-                    else lowerBound = upperBound;
+                    else
+						lowerBound = upperBound;
                 }
             }
         }
         
-        return state;
+        return sample;
     }
     
-    /** Returns true if the card might be in the given location. */
-    public boolean maybe(int card, int loc) { return (locs[card] & (1 << loc)) != 0; }
-    
-    /** Return true if the given card is in the given location. */
-    public boolean certainly(int loc, int card) { return locs[card] == (1 << loc); }
-    
-    /**
-     * Return true if the specified player might have a higher ranked card in
-     * the same suit of the given card.
-     */
-    public boolean higher(Card c, int player) { return cards[player][Game.suitToInt(c.suit)] > (1 << (c.rank-2)); }
-    
-    /** Return the probability of a card being in a location. */
-    private double chance(Card c, int loc)
-    {
-        double numerator = 0.0;
-        double denominator = 0.0;
-        
-        // Scan through the locations.
-        for(int j = 0; j < 4; j++)
-        {
-            if(j == loc) numerator = (double)cards[j][UNKNOWN];
-            // If j is a locs location for the card.
-            // We only want to consider the unknown cards in a location
-            // if the card in question might be located there.
-            if(maybe(Game.cardToInt(c), j)) denominator += (double)cards[j][UNKNOWN];
-        }
-
-        return numerator / denominator;
-    }
+    private boolean tbc(Card c) { return (locs[Game.cardToInt(c)] & (1 << TBC)) != 0; }
     
     /** See if new knowledge allows confirming a card's location. */
-    private void confirm(int card)
+    private void confirm(int c)
     {
         // If the card was already confirmed, skip the checks.
-        if((locs[card] & TBC) != 0)
+        if(tbc(Game.intToCard(c)))
         {
-            switch(locs[card] - TBC)
+            switch(locs[c] - (1 << TBC))
             {
                 case Game.LEADER:
-                    locs[card] = Game.LEADER;
+                    locs[c] = Game.LEADER;
                     cards[Game.LEADER][UNKNOWN]--;
                     break;
                 case 1 << Game.LEFT:
-                    locs[card] = 1 << Game.LEFT;
+                    locs[c] = 1 << Game.LEFT;
                     cards[Game.LEFT][UNKNOWN]--;
                     break;
                 case 1 << Game.RIGHT:
-                    locs[card] = 1 << Game.RIGHT;
+                    locs[c] = 1 << Game.RIGHT;
                     cards[Game.RIGHT][UNKNOWN]--;
                     break;
                 case 1 << Game.OUT:
-                    locs[card] = 1 << Game.OUT;
+                    locs[c] = 1 << Game.OUT;
                     cards[Game.OUT][UNKNOWN]--;
                     break;
             }
