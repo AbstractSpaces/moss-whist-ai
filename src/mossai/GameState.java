@@ -350,7 +350,7 @@ class GameState
     void advance(Card played)
     {
         for(BeliefState b : beliefs)
-			b.cardPlayed(played, turn, table[0]);
+			b.cardPlayed(played, turn, table[order[0]]);
 		
         table[turn] = played;
         turn = (turn + 1) % 3;
