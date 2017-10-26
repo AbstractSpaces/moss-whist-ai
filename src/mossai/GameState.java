@@ -10,7 +10,7 @@ class GameState
     /** The agent's place relative to the leader. */
     public static int pos;
     
-    /** The indices of players in their turn order for this trick. */
+    // The indices of players in their turn order for this trick.
     private int[] order;
     
     /** The player currently taking their turn, having not yet played their card. */
@@ -89,8 +89,6 @@ class GameState
 	
 	int currentTurn() { return turn; }
     
-    
-    
     /**
      * Use a fixed, greedy strategy to determine the active player's move from
      * this state.
@@ -102,9 +100,22 @@ class GameState
         if(turn == order[0])
         {
             // As a leader, we want to play the highest card to keep on winin', to keep on leadin'
-            for(Suit suit : Suit.values())
-                if(!opponentHigherCardSuit(suit, turn, order[1], beliefs[turn]) && !opponentHigherCardSuit(suit, turn, order[2], beliefs[turn]))
-                    return beliefs[turn].highest(suit, turn);
+            for(Suit s : Suit.values())
+			{
+				Card challenge1 = beliefs[turn].highest(s, order[1]);
+				Card challenge2 = beliefs[turn].highest(s, order[2]);
+				Card contest;
+				
+				if(challenge1.rank > challenge2.rank)
+					contest = beliefs[turn].higherThan(challenge1, turn);
+				else
+					contest = beliefs[turn].higherThan(challenge2, turn);
+				
+				if(contest != null)
+					return contest;
+				else
+					return beliefs[turn].lowest(turn);
+			}
             
             // If we think that we can't beat either p2 or p3, play the lowest card we got
             return beliefs[turn].lowest(turn);
@@ -128,7 +139,7 @@ class GameState
                     {
                         System.out.println("I think p3 will also play this suit");
                         // Get p3s highest card
-                        Card p3 = getOpponentsHighestCardSuit(leading.suit, order[2]);
+                        Card p3 = beliefs[turn].highest(leading.suit, order[2]);
                         // Find out which is higher
                         Card highestCardPlayed = table[order[0]].rank > p3.rank ? table[order[0]] : p3;
                         // Everyone is playing the same suit
@@ -187,10 +198,15 @@ class GameState
                                 // If we can play a spade
                                 if(beliefs[turn].has(Suit.SPADES, turn))
                                 {
-                                    // get p3s highest trump
-                                    Card p3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2]);
-                                    // play a higher spade or the lowest card we have
-                                    play = playCardTrump(p3);
+                                    // Get p3s highest trump
+                                    Card challenge = beliefs[turn].highest(Game.TRUMP, order[2]);
+                                    // Play a higher spade or the lowest card we have
+                                    Card contest = beliefs[turn].higherThan(challenge, turn);
+									
+									if(contest != null)
+										return contest;
+									else
+										return beliefs[turn].lowest(turn);
                                 }
                                 else
                                     // We can't win, get rid of the smallest card
@@ -269,7 +285,7 @@ class GameState
                             // If player 2 played a trump
                             if(table[order[1]].suit == Suit.SPADES)
                                 // Play winning trump or the smallest card we have
-                                play = playCardTrump(table[order[1]]); // want to avoid handS for findLowestCard?
+                                play = challenge(table[order[1]]); // want to avoid handS for findLowestCard?
                             else
                                 // We don't have to obey and spades were not played
                                 play = beliefs[turn].lowest(Suit.SPADES, turn);
@@ -285,78 +301,71 @@ class GameState
 	
 	private Card player2Eval(Card lead)
 	{
-		// If we have to obey the suit.
+		// If p2 has to obey the suit.
 		if(beliefs[turn].has(lead.suit, turn))
 		{
-			// Fetch the best card available to player 3.
-			Card contest = beliefs[turn].highest(lead.suit, order[2]);
+			// Fetch the best card available to p3.
+			Card challenge = beliefs[turn].highest(lead.suit, order[2]);
 			
-			// If player 3 can beat the lead by following suit, we attempt to
-			// beat them.
-			if(contest != null && contest.rank > lead.rank)
-				return followSuit(contest);
-			// If we think that p3 doesn't have to follow suit.
-			else if(lead.suit != Game.TRUMP && beliefs[turn].has(Game.TRUMP, order[2]))
-				// We still have to follow and can't beat player 3.
-				return beliefs[turn].lowest(lead.suit, turn);
-			
-			// The lead card is still the best contender, so we attempt to beat
+			// If p3 must follow.
+			if(challenge != null)
+			{
+				// If p3 can beat the lead.
+				if(challenge.rank > lead.rank)
+				{
+					// Attempt to beat p3's best.
+					Card contest = beliefs[turn].higherThan(challenge, turn);
+
+					if(contest != null)
+						return contest;
+				}
+			}
+			// If p2 thinks that p3 can't trump the lead.
+			else if(!beliefs[turn].has(Game.TRUMP, order[2]))
+			// The lead card is still the best contender, so p2 attempts to beat
 			// it.
-			return followSuit(lead);
+				return beliefs[turn].higherThan(lead, turn);
 		}
-		// We don't have to obey the suit
+		// p2 doesn't have to follow the suit.
 		else
 		{
-			// If spades were played but we don't have any
-			if(lead.suit == Suit.SPADES)
+			// If the lead isn't a trump.
+			if(lead.suit != Game.TRUMP)
 			{
-//				System.out.println("Spades were played but I don't have any");
-                            return beliefs[turn].lowest(turn);
-                    }
-                    // If spades are not the suit in this trick
-                    else
-                    {
-                            // If we think that p3 has to obey
-                            if(beliefs[turn].has(lead.suit, order[2]))
-                            {
-//					System.out.println("I think p3 will obey this suit");
-                                    // If we can play a spade
-                                    if(beliefs[turn].has(Suit.SPADES, turn))
-                                            // Play the lowest spade to win the tick
-                                            return beliefs[turn].lowest(Suit.SPADES, turn);
-                                    // We don't have to obey and we don't have any spades
-                                    else
-                                            // We can't win, get rid of the smallest card
-                                            return beliefs[turn].lowest(turn);
-                            }
-                            // If we think p3 doesn't have to obey the suit too
-                            else
-                            {
-                                    // If we think that p3 has spades
-                                    if(beliefs[turn].has(Suit.SPADES, order[2]) == true)
-                                            // If we can play a spade
-                                            if(beliefs[turn].has(Suit.SPADES, turn))
-                                            {
-                                                    // get p3s highest trump
-                                                    Card p3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2]);
-                                                    // play a higher spade or the lowest card we have
-                                                    return playCardTrump(p3);
-                                            }
-                                            else
-                                                    // We can't win, get rid of the smallest card
-                                                    return beliefs[turn].lowest(turn);
-                                    // If spades were not played && we think that p3 doesn't have a spade
-                                    else
-                                            // If we can play a spade
-                                            if(beliefs[turn].has(Suit.SPADES, turn))
-                                                    // Play the lowest spade to win the tick
-                                                    return beliefs[turn].lowest(Suit.SPADES, turn);
-                                            else
-                                                    // We can't win, get rid of the smallest card
-                                                    return beliefs[turn].lowest(turn);
-                            }
-                    }
-            }
+				// If we think that p3 has to follow.
+				if(beliefs[turn].has(lead.suit, order[2]))
+				{
+					// If we can play a trump.
+					if(beliefs[turn].has(Suit.SPADES, turn))
+						// Play the lowest spade to win the trick
+						return beliefs[turn].lowest(Suit.SPADES, turn);
+				}
+				// If we think p3 doesn't have to follow either.
+				else
+				{
+					// If we think that p3 has a trump.
+					if(beliefs[turn].has(Game.TRUMP, order[2]))
+					{
+						// If we can contest their trump.
+						if(beliefs[turn].has(Suit.SPADES, turn))
+						{
+							Card theirs = beliefs[order[2]].highest(Game.TRUMP, order[2]);
+							Card mine = beliefs[turn].higherThan(theirs, turn);
+							
+							// If our trump beats theirs.
+							if(mine != null)
+								return mine;
+						}
+						// If spades were not played && we think that p3 doesn't have a spade
+						else
+							return beliefs[turn].lowest(Suit.SPADES, turn);
+					}
+				}
+			}
+		}
+		
+		// p2 can't win, throw away a card.
+		return beliefs[turn].lowest(turn);
     }
 
 	/**
@@ -375,66 +384,22 @@ class GameState
         return beliefs[turn].lowest(c.suit, turn);
     }
     
-    private Card playCardTrump(Card c)
+    private Card challenge(Card c)
     {
-        for(int i = Game.cardToInt(c); i <= Game.suitEnds(Suit.SPADES); i++)
-            if(beliefs[turn].has(Game.intToCard(i), turn))
-                return Game.intToCard(i);
-
-        // We can't beat the spade, play the smallest card
-        return beliefs[turn].lowest(turn);
+        Card contest = beliefs[turn].higherThan(c, turn);
+		
+		if(contest != null)
+			return contest;
+		else
+			return beliefs[turn].lowest(turn);
     }
-        
-    /*
-        Heuristic for evaluating what is in the opponents hand. 
-        Right now it is always paranoid.
-    */
-    private Card getOpponentsHighestCardSuit(Suit s, int opponent)
-    {
-        int i = Game.suitBegins(s);
-        Card highest = Game.intToCard(i);
-        Card opponentCard;
-        
-        for(i = Game.suitBegins(s)+1; i <= Game.suitEnds(s); i++)
-        {
-            opponentCard = Game.intToCard(i);
-            
-            // If we think that there is a good chance that they have the card
-            if(beliefs[0].chance(opponentCard, opponent) > Raptor.POSITIVE)
-                // If it is a higher card
-                if(opponentCard.rank > highest.rank)
-                    highest = opponentCard;
-        }
-        
-        //return myState.highest(suit, opponent);
-        return highest;
-    }
-
-    private boolean opponentHigherCardSuit(Suit s, int loc, int opponent, BeliefState myState)
-    {
-        Card myHighestCard = myState.highest(s, loc);
-        Card opponentCard;
-        
-        for(int i = Game.suitBegins(s)+myHighestCard.rank; i <= Game.suitEnds(s); i++)
-        {
-            opponentCard = Game.intToCard(i);
-            
-            // If we think that there is a good chance that the opponent has a higher card
-            if(myState.chance(opponentCard, opponent) > Raptor.POSITIVE)
-                //return opponentCard;
-                return true;
-        }
-        
-        return false;
-    }
-
-    
+	
     /** Use Monte Carlo tree search to evaluate the best move from this state. */
     public Card monteCarlo()
     {
-		System.out.println("Monte Carlo during agent turn: " + (turn == pos));
+		System.out.println("Monte Carlo called for player: " + turn);
         GameState root = new GameState(this, true);
-		System.out.println(" Sample root clone is agent turn: " + (root.turn == pos));
+		System.out.println(" Sample root clone is same as true state: " + (turn == root.turn));
         root.expand();
         
         // Run the search.
@@ -488,7 +453,6 @@ class GameState
             order[0] = best;
             order[1] = (best + 1) % 3;
             order[2]= (best + 2) % 3;
-            System.out.println("gamS->winner: " + best);
         }
     }
 
@@ -498,7 +462,7 @@ class GameState
         // Skip the whole process if the node is already expanded.
         if(children == null)
         {
-			System.out.println("Expanding node during agent turn: " + (turn == pos));
+			System.out.println("Tree node is for player: " + turn);
             children = new ArrayList();
 
             for(Suit s : Suit.values())
@@ -513,18 +477,18 @@ class GameState
                         {
 							// Simulate a legal move.
 							GameState child = new GameState(this, false);
-							System.out.println("Cloned state for child, agent move: " + (child.turn == pos));
+							System.out.println("Cloned child is for player: " + child.turn);
 							child.advance(Game.intToCard(i));
-							System.out.println("Agent move made, next turn: " + child.turn + ", is agent: " + (child.turn == pos));
+							System.out.println("Child turn made.");
 
 							// Simulate predicted opponent moves.
 							while(child.turn != pos)
 							{
-								System.out.println("Simulating turn: " + child.turn + ", is agent: " + (child.turn == pos));
+								System.out.println("Simulating turn: " + child.turn);
 								Card toPlay = child.greedyEval();
 								System.out.println("Card chosen: " + toPlay);
 								child.advance(toPlay);
-								System.out.println("Next turn: " + child.turn + ", is agent: " + (child.turn == pos));
+								System.out.println("Next turn: " + child.turn); 
 							}
 
 							children.add(child);

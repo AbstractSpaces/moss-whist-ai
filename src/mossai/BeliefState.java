@@ -238,7 +238,7 @@ final class BeliefState
     {
         if(maybeHas(s, loc))
             for(int c = Game.suitEnds(s); c >= Game.suitBegins(s); c--)
-                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
+                if(has(Game.intToCard(c), loc))
                     return Game.intToCard(c);
 		
         return null;
@@ -248,12 +248,26 @@ final class BeliefState
     Card lowest(Suit s, int loc)
     {
         if(maybeHas(s, loc))
-            for(int c = Game.suitBegins(s); c >= Game.suitEnds(s); c++)
-                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
+            for(int c = Game.suitBegins(s); c <= Game.suitEnds(s); c++)
+                if(has(Game.intToCard(c), loc))
                     return Game.intToCard(c);
 		
         return null;
     }
+	
+	/**
+	 * Return the lowest someone likely has that is higher and in the same
+	 * suit as another.
+	 */
+	Card higherThan(Card c, int loc)
+	{
+		if(maybeHas(c.suit, loc))
+			for(int i = Game.cardToInt(c) + 1; i <= Game.suitEnds(c.suit); i++)
+				if(has(Game.intToCard(i), loc))
+					return Game.intToCard(i);
+		
+		return null;
+	}
     
     Card maxCard(Card a, Card b)
     {

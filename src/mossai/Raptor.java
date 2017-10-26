@@ -65,7 +65,7 @@ public class Raptor implements MSWAgent
         for(int i = 0; i < 3; i++)
 			players.put(names[i], (order+i)%3);
 		
-		System.out.println("Leader: " + order);
+		System.out.println("Agent is player: " + order);
     }
 
     @Override
@@ -123,10 +123,10 @@ public class Raptor implements MSWAgent
     @Override
     public Card playCard()
     {
-		System.out.println("Starting plaCard algorithm.");
+		System.out.println("Starting playCard algorithm.");
         Card best = null;
         long start = System.nanoTime();
-       
+/*       
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
@@ -141,9 +141,9 @@ public class Raptor implements MSWAgent
         }
         
         for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
-        
+*/        
         // Temp version.
-        //best = state.greedyEval();
+        best = state.greedyEval();
         
         state.advance(best);
         return best;
