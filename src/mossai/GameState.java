@@ -330,7 +330,7 @@ class GameState
 
     
     /** Use Monte Carlo tree search to evaluate the best move from this state. */
-    Card monteCarlo()
+    public Card monteCarlo()
     {
         GameState root = new GameState(this, true);
         root.expand();
