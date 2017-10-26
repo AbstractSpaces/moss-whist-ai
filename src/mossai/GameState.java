@@ -129,7 +129,7 @@ class GameState
                         // Find out which is higher
                         Card highestCardPlayed = table[order[0]].rank > p3.rank ? table[order[0]] : p3;
                         // Play a higher card or the lowest card if can't win
-                        return playCardSuit(winning.suit, highestCardPlayed, turn);
+                        return playCardSuit(winning.suit, highestCardPlayed);
                     }
                     // If we think that p3 doesn't have to obey
                     else
@@ -146,7 +146,7 @@ class GameState
                         {
                             System.out.println("I think p3 doesn't have this suit and he can't trump");
                             // Play a higher card or the lowest card of the suit
-                            return playCardSuit(winning.suit, table[order[0]], turn);
+                            return playCardSuit(winning.suit, table[order[0]]);
                         }
                     }
                 }
@@ -179,7 +179,7 @@ class GameState
                                     Card p3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2]);
                                     
                                     // play a higher spade or the lowest card we have
-                                    return playCardTrump(p3, turn);
+                                    return playCardTrump(p3);
                                 }
                                 else
                                     // We can't win, get rid of the smallest card
@@ -234,7 +234,7 @@ class GameState
                     {
                         System.out.println("Play higher or lowest suit card");
                         // Play a higher card of the obeyed suit or lowest
-                        return playCardSuit(winning.suit, winning, turn);
+                        return playCardSuit(winning.suit, winning);
                     }
                 }
                 // We don't have the suit
@@ -254,7 +254,7 @@ class GameState
                             // If player 2 played a trump
                             if(table[order[1]].suit == Suit.SPADES)
                                 // Play winning trump or the smallest card we have
-                                return playCardTrump(table[order[1]], turn); // want to avoid handS for findLowestCard?
+                                return playCardTrump(table[order[1]]); // want to avoid handS for findLowestCard?
                             else
                                 // We don't have to obey and spades were not played
                                 return beliefs[turn].lowest(Suit.SPADES, turn);
@@ -263,7 +263,7 @@ class GameState
     }
 
     
-    public Card playCardSuit(Suit s, Card highestCardPlayed, int loc)
+    public Card playCardSuit(Suit s, Card highestCardPlayed)
     {
         // Go through each one of the cards of that suit that we have, above the highest
         for(int i = Game.suitBegins(s)+highestCardPlayed.rank; i <= Game.suitEnds(s); i++)
@@ -272,17 +272,17 @@ class GameState
                 return Game.intToCard(i);
         
         // If we can't beat what's on the table, play the lowest card
-        return beliefs[turn].lowest(s, loc);
+        return beliefs[turn].lowest(s, turn);
     }
     
-    private Card playCardTrump(Card highestSpadeCard, int loc)
+    private Card playCardTrump(Card highestSpadeCard)
     {
         for(int i = Game.suitBegins(Suit.SPADES)+highestSpadeCard.rank; i <= Game.suitEnds(Suit.SPADES); i++)
             if(beliefs[turn].here(Game.intToCard(i)))
                 return Game.intToCard(i);
         
         // We can't beat the spade, play the smallest card
-        return beliefs[turn].lowestCardInHand(loc);    
+        return beliefs[turn].lowestCardInHand(turn);    
     }
         
     /*
