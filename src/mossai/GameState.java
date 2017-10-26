@@ -357,15 +357,33 @@ class GameState
         Heuristic for evaluating what is in the opponents hand. 
         Right now it is always paranoid.
     */
-    public static Card getOpponentsHighestCardSuit(Suit suit, int opponent, BeliefState myState)
+    double riskProne = 0.3;
+    private Card getOpponentsHighestCardSuit(Suit suit, int opponent, BeliefState myState)
     {
+        int i = Game.suitBegins(suit);
+        Card highest = Game.intToCard(i);
+        Card opponentCard;
         
-        return myState.highest(suit, opponent);
+        for(i = Game.suitBegins(suit)+1; i <= Game.suitEnds(suit); i++)
+        {
+            opponentCard = Game.intToCard(i);
+            
+            // If we think that there is a good chance that they have the card
+            if(myState.chance(opponentCard, opponent) > riskProne)
+            {
+                // If it is a higher card
+                if(opponentCard.rank > highest.rank)
+                {
+                    highest = opponentCard;
+                }
+            }
+        }
+        //return myState.highest(suit, opponent);
+        return highest;
     }
 
     private boolean opponentHigherCardSuit(Suit suit, int loc, int opponent, BeliefState myState)
     {
-        double riskProne = 0.3;
         Card myHighestCard = myState.highest(suit, loc);
         Card opponentCard;
         for(int i = Game.suitBegins(suit)+myHighestCard.rank; i <= Game.suitEnds(suit); i++)
@@ -381,7 +399,7 @@ class GameState
             else
             {
                 // If we think that there is a good chance that the opponent has a higher card
-                if(myState.chance(myHighestCard, opponent) > riskProne)
+                if(myState.chance(opponentCard, opponent) > riskProne)
                 {
                     //return opponentCard;
                     return true;
