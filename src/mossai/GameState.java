@@ -139,13 +139,14 @@ class GameState
 				// If the third player is expected to trump.
 				else if(contested.suit != Game.TRUMP && active.otherHas(Game.TRUMP, left()))
 					contested = active.highestInOther(Game.TRUMP, left());
-				
             }
             // Evaluation for the third player.
             else
             {
-				challenger = table[right()];
+				
                 // See if the second player beat the lead.
+				challenger = table[right()];
+				
 				if((challenger.suit == Game.TRUMP && contested.suit != Game.TRUMP) || challenger.rank > contested.rank)
 					contested = challenger;
             }
