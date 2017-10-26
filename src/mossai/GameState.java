@@ -38,8 +38,8 @@ class GameState
     GameState(int leader, List<Card> deal)
     {
         pos = leader;
-        order = new int[] {leader, (leader+1)%3, (leader+2)%3};
-        turn = order[0];
+        order = new int[] {0, 1, 2};
+        turn = 0;
         table = new Card[3];
         scores = new int[] {-8, -4, -4};
         
@@ -86,6 +86,8 @@ class GameState
         wins = 0.0;
         children = null;
     }
+	
+	int currentTurn() { return turn; }
     
     /**
      * Use a fixed, greedy strategy to determine the active player's move from
@@ -187,44 +189,24 @@ class GameState
 	
 	private Card player2Eval(Card lead)
 	{
-//		System.out.println("I'm player 2, table: " + lead);
-        
 		// If we have to obey the suit.
 		if(beliefs[turn].has(lead.suit, turn))
 		{
-//			System.out.println("I'm obeying the suit.");
-
 			// Fetch the best card available to player 3.
 			Card contest = beliefs[turn].highest(lead.suit, order[2]);
 			
-			if(contest != null)
-			{
-//				System.out.println("I think p3 will also play this suit");
-				
-				// If the lead card is still the best contender.
-				if(beliefs[turn].highest(lead.suit, turn).rank > contest.rank)
-					return followSuit(lead);
-				else return
-					followSuit(contest);
-			}
-			// If we think that p3 doesn't have to obey
-			else
-			{
-				// If we think that p3 is going to trump the obeyed suit
-				if(lead.suit != Suit.SPADES && beliefs[turn].has(Suit.SPADES, order[2]) == true)
-				{
-//					System.out.println("I think p3 will play a trump");
-					// We can't win against a spade, but we have to play the suit, play the lowest card
-					return beliefs[turn].lowest(lead.suit, turn);
-				}
-				// If p3 is not going to play a spade
-				else
-				{
-//					System.out.println("I think p3 doesn't have this suit and he can't trump");
-					// Play a higher card or the lowest card of the suit
-					return followSuit(table[order[0]]);
-				}
-			}
+			// If player 3 can beat the lead by following suit, we attempt to
+			// beat them.
+			if(contest != null && contest.rank > lead.rank)
+				return followSuit(contest);
+			// If we think that p3 doesn't have to follow suit.
+			else if(lead.suit != Game.TRUMP && beliefs[turn].has(Game.TRUMP, order[2]))
+				// We still have to follow and can't beat player 3.
+				return beliefs[turn].lowest(lead.suit, turn);
+			
+			// The lead card is still the best contender, so we attempt to beat
+			// it.
+			return followSuit(lead);
 		}
 		// We don't have to obey the suit
 		else

@@ -64,6 +64,8 @@ public class Raptor implements MSWAgent
 		
         for(int i = 0; i < 3; i++)
 			players.put(names[i], (order+i)%3);
+		
+		System.out.println("Leader: " + order);
     }
 
     @Override
@@ -121,6 +123,7 @@ public class Raptor implements MSWAgent
     @Override
     public Card playCard()
     {
+		System.out.println("Starting plaCard algorithm.");
         Card best = null;
         long start = System.nanoTime();
        
@@ -147,7 +150,14 @@ public class Raptor implements MSWAgent
     }
 
     @Override
-    public void seeCard(Card card, String agent) { state.advance(card); }
+    public void seeCard(Card card, String agent)
+	{
+		System.out.println("Opponent turn: " + players.get(agent));
+		System.out.println("State turn set to: " + state.currentTurn());
+		state.advance(card);
+		System.out.println("Next turn: " + (players.get(agent)+1)%3);
+		System.out.println("State advanced to: " + state.currentTurn());
+	}
 
     @Override
     public void seeResult(String winner)

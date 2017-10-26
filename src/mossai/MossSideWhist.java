@@ -90,11 +90,11 @@ public class MossSideWhist
      * */
     public void playHand()
     {
-        report.println("The leader is " + leader + ", to the left is " + left + " and " + right + " is to the right.");
+//        report.println("The leader is " + leader + ", to the left is " + left + " and " + right + " is to the right.");
         deal();
-        display(leader);
-        display(left);
-        display(right);
+//        display(leader);
+//        display(left);
+//        display(right);
         Card[] discard = agents.get(leader).discard();
         for(int i = 0; i < 4; i++)
         {
@@ -102,14 +102,14 @@ public class MossSideWhist
             {
                 hands.get(leader).remove(0);//if illegitimate discards, the 0 card is discarded.
             }        //could include a score penalty here as well.
-            display(leader);
+//            display(leader);
         }
         String first = leader;
         for(int i = 0; i < 16; i++)
         {
-            display(leader);
-            display(left);
-            display(right);
+//            display(leader);
+//            display(left);
+//            display(right);
             first = trick(first);
             scoreboard.put(first, scoreboard.get(first) + 1);
         }
@@ -176,7 +176,7 @@ public class MossSideWhist
             third = left;
         }
         Card[] trick = new Card[3];
-        display(first, true);
+//        display(first, true);
         Card lead = agents.get(first).playCard();
         ArrayList<Card> hand = hands.get(first);
         if(!hand.remove(lead))
@@ -184,8 +184,8 @@ public class MossSideWhist
             lead = hand.remove(rand.nextInt(hand.size()));
         }
         showCards(lead, first);
-        report.println(lead);
-        display(second, true);
+//        report.println(lead);
+//        display(second, true);
         Card next = agents.get(second).playCard();
         hand = hands.get(second);
         while(!legal(next, second, lead.suit))
@@ -194,8 +194,8 @@ public class MossSideWhist
         }
         hand.remove(next);
         showCards(next, second);
-        report.println(next);
-        display(third, true);
+//        report.println(next);
+//        display(third, true);
         Card last = agents.get(third).playCard();
         hand = hands.get(third);
         while(!legal(last, third, lead.suit))
@@ -204,12 +204,12 @@ public class MossSideWhist
         }
         hand.remove(last);
         showCards(last, third);
-        report.println(last);
+//        report.println(last);
         String winner = getWinner(lead, next, last, first, second, third);
         agents.get(leader).seeResult(winner);
         agents.get(left).seeResult(winner);
         agents.get(right).seeResult(winner);
-        report.println(winner + " wins the trick!");
+//        report.println(winner + " wins the trick!");
         return winner;
     }
 
@@ -279,13 +279,13 @@ public class MossSideWhist
     //overloaded method to display an agents full hand
     private void display(String agent)
     {
-        display(agent, false);
+//       display(agent, false);
     }
 
     //displays the agents name and score, and if hidden is false, the remaining cards in their hand.
     private void display(String agent, boolean hidden)
     {
-        report.println("Player: " + agent + "\tScore: " + scoreboard.get(agent));
+//        report.println("Player: " + agent + "\tScore: " + scoreboard.get(agent));
         if(!hidden)
         {
             String hand = "";
@@ -293,16 +293,16 @@ public class MossSideWhist
             {
                 hand += c + ",";
             }
-            report.println(hand);
+//            report.println(hand);
         }
     }
 
     //shows the scores of all players.
     private void showScores()
     {
-        report.println(leader + ": " + scoreboard.get(leader));
-        report.println(left + ": " + scoreboard.get(left));
-        report.println(right + ": " + scoreboard.get(right));
+//        report.println(leader + ": " + scoreboard.get(leader));
+//        report.println(left + ": " + scoreboard.get(left));
+//        report.println(right + ": " + scoreboard.get(right));
     }
 
     /* public static void main(String[] args)
