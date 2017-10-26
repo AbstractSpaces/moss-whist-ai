@@ -148,13 +148,9 @@ final class BeliefState
             if(b != null)
             {
                 if(a.rank > b.rank)
-                {
                     return a;
-                }
                 else
-                {
                     return b;
-                }
             }
             return a;
         }
@@ -167,13 +163,9 @@ final class BeliefState
             if(b != null)
             {
                 if(a.rank > b.rank)
-                {
                     return b;
-                }
                 else
-                {
                     return a;
-                }
             }
             return a;
         }

@@ -122,7 +122,7 @@ class GameState
                 //System.out.println("I'm player 2, table: " + table.length + " handH: " + handH.size() + " handC: " + handC.size() + " handD: " + handD.size() + " handS: " + handS.size());
                 
                 // If we have to obey the suit
-                if(beliefs[pos].maybeHas(winning.suit, pos))
+                if(beliefs[pos].here(winning.suit) == true)
                 {
                     System.out.println("I'm obeying the suit.");
                     // If we think that p3 has to obey too
@@ -191,7 +191,7 @@ class GameState
                             // If we think that p3 doesn't have a spade
                             else
                                 // If we can play a spade
-                                if(beliefs[pos].maybeHas(Suit.SPADES, pos))
+                                if(beliefs[pos].here(Suit.SPADES))
                                     // Play the lowest spade to win the tick
                                     return beliefs[pos].lowest(Suit.SPADES, pos);
                                 else
@@ -203,7 +203,7 @@ class GameState
             {
                 //System.out.println("I'm player 3, table: " + table.length + " handH: " + handH.size() + " handC: " + handC.size() + " handD: " + handD.size() + " handS: " + handS.size());
                 // If we have to obey the suit
-                if(beliefs[pos].maybeHas(winning.suit, pos))
+                if(beliefs[pos].here(winning.suit))
                 {
                     // If p2 obeyed the suit, select the one with highest rank
                     if(table[1].suit == winning.suit)
@@ -248,7 +248,7 @@ class GameState
                     // If we don't have to obey and the played suit is not spades
                     else
                         // We don't have any spades either
-                        if(beliefs[pos].maybeHas(Suit.SPADES, pos))
+                        if(!beliefs[pos].here(Suit.SPADES))
                             // We can't win, get rid of the smallest card
                             return beliefs[pos].lowestCardInHand(pos);
                         // If we don't have to obey and we can play a spade
@@ -398,26 +398,26 @@ class GameState
 
             for(Suit s : Suit.values())
             {
-				// If the agent is allowed to play from this suit.
-				if(legal(pos, s))
-				{
-					for(int i = Game.suitBegins(s); i <= Game.suitEnds(s); i++)
-					{
-						// If the agent has this card.
-						if(beliefs[pos].here(Game.intToCard(i)))
-						{
-							// Simulate a legal move.
-							GameState child = new GameState(this, false);
-							child.advance(Game.intToCard(i));
-							
-							// Simulate predicted opponent moves.
-							while(child.turn != pos)
-								child.advance(child.greedyEval());
-							
-							children.add(child);
-						}
-					}
-				}
+                // If the agent is allowed to play from this suit.
+                if(legal(pos, s))
+                {
+                    for(int i = Game.suitBegins(s); i <= Game.suitEnds(s); i++)
+                    {
+                        // If the agent has this card.
+                        if(beliefs[pos].here(Game.intToCard(i)))
+                        {
+                                // Simulate a legal move.
+                                GameState child = new GameState(this, false);
+                                child.advance(Game.intToCard(i));
+
+                                // Simulate predicted opponent moves.
+                                while(child.turn != pos)
+                                        child.advance(child.greedyEval());
+
+                                children.add(child);
+                        }
+                    }
+                }
             }
         }
     }
