@@ -101,11 +101,11 @@ class GameState
         {
             // As a leader, we want to play the highest card to keep on winin', to keep on leadin'
             for(Suit suit : Suit.values())
-                if(!opponentHigherCardSuit(suit, pos, order[1], beliefs[pos]) && !opponentHigherCardSuit(suit, pos, order[2], beliefs[pos]))
-                    return beliefs[pos].highest(suit, pos);
+                if(!opponentHigherCardSuit(suit, turn, order[1], beliefs[turn]) && !opponentHigherCardSuit(suit, turn, order[2], beliefs[turn]))
+                    return beliefs[turn].highest(suit, turn);
             
             // If we think that we can't beat either p2 or p3, play the lowest card we got
-            return beliefs[pos].lowestCardInHand(pos);
+            return beliefs[turn].lowestCardInHand(turn);
         }
         else
         {
@@ -117,11 +117,11 @@ class GameState
                 //System.out.println("I'm player 2, table: " + table.length + " handH: " + handH.size() + " handC: " + handC.size() + " handD: " + handD.size() + " handS: " + handS.size());
                 
                 // If we have to obey the suit
-                if(beliefs[pos].here(winning.suit) == true)
+                if(beliefs[turn].here(winning.suit) == true)
                 {
                     System.out.println("I'm obeying the suit.");
                     // If we think that p3 has to obey too
-                    if(beliefs[pos].maybeHas(winning.suit, order[2]) == true)
+                    if(beliefs[turn].maybeHas(winning.suit, order[2]) == true)
                     {
                         System.out.println("I think p3 will also play this suit");
                         // Get p3s highest card
@@ -129,24 +129,24 @@ class GameState
                         // Find out which is higher
                         Card highestCardPlayed = table[order[0]].rank > p3.rank ? table[order[0]] : p3;
                         // Play a higher card or the lowest card if can't win
-                        return playCardSuit(winning.suit, highestCardPlayed, pos);
+                        return playCardSuit(winning.suit, highestCardPlayed, turn);
                     }
                     // If we think that p3 doesn't have to obey
                     else
                     {
                         // If we think that p3 is going to trump the obeyed suit
-                        if(winning.suit != Suit.SPADES && beliefs[pos].maybeHas(Suit.SPADES, order[2]) == true)
+                        if(winning.suit != Suit.SPADES && beliefs[turn].maybeHas(Suit.SPADES, order[2]) == true)
                         {
                             System.out.println("I think p3 will play a trump");
                             // We can't win against a spade, play the lowest card
-                            return beliefs[pos].lowest(winning.suit, pos);
+                            return beliefs[turn].lowest(winning.suit, turn);
                         }
                         // If p3 is not going to play a spade
                         else
                         {
                             System.out.println("I think p3 doesn't have this suit and he can't trump");
                             // Play a higher card or the lowest card of the suit
-                            return playCardSuit(winning.suit, table[order[0]], pos);
+                            return playCardSuit(winning.suit, table[order[0]], turn);
                         }
                     }
                 }
@@ -154,51 +154,51 @@ class GameState
                 else
                     // If spades were played but we don't have any
                     if(winning.suit == Suit.SPADES)
-                        return beliefs[pos].lowestCardInHand(pos);
+                        return beliefs[turn].lowestCardInHand(turn);
                     // If spades are not the tick suit
                     else
                         // If we think that p3 has to obey
-                        if(beliefs[pos].maybeHas(winning.suit, order[2]) == true)
+                        if(beliefs[turn].maybeHas(winning.suit, order[2]) == true)
                             // If we can play a spade
-                            if(beliefs[pos].maybeHas(Suit.SPADES, pos))
+                            if(beliefs[turn].maybeHas(Suit.SPADES, turn))
                                 // Play the lowest spade to win the tick
-                                return beliefs[pos].lowest(Suit.SPADES, pos);
+                                return beliefs[turn].lowest(Suit.SPADES, turn);
                             // We don't have to obey and we don't have any spades
                             else
                                 // We can't win, get rid of the smallest card
-                                return beliefs[pos].lowestCardInHand(pos);
+                                return beliefs[turn].lowestCardInHand(turn);
                         // If we think p3 doesn't have to obey the suit too
                         else
                             // If we think that p3 has spades
-                            if(beliefs[pos].maybeHas(Suit.SPADES, order[2]) == true)
+                            if(beliefs[turn].maybeHas(Suit.SPADES, order[2]) == true)
                                 // If we can play a spade
-                                if(beliefs[pos].maybeHas(Suit.SPADES, pos))
+                                if(beliefs[turn].maybeHas(Suit.SPADES, turn))
                                 {
                                     // get p3s highest trump
                                     Card p3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2]);
                                     
                                     // play a higher spade or the lowest card we have
-                                    return playCardTrump(p3, pos);
+                                    return playCardTrump(p3, turn);
                                 }
                                 else
                                     // We can't win, get rid of the smallest card
-                                    return beliefs[pos].lowestCardInHand(pos);
+                                    return beliefs[turn].lowestCardInHand(turn);
                             // If we think that p3 doesn't have a spade
                             else
                                 // If we can play a spade
-                                if(beliefs[pos].here(Suit.SPADES))
+                                if(beliefs[turn].here(Suit.SPADES))
                                     // Play the lowest spade to win the tick
-                                    return beliefs[pos].lowest(Suit.SPADES, pos);
+                                    return beliefs[turn].lowest(Suit.SPADES, turn);
                                 else
                                     // We can't win, get rid of the smallest card
-                                    return beliefs[pos].lowestCardInHand(pos);
+                                    return beliefs[turn].lowestCardInHand(turn);
             }
             // Evaluation for the third player.
             else
             {
                 //System.out.println("I'm player 3, table: " + table.length + " handH: " + handH.size() + " handC: " + handC.size() + " handD: " + handD.size() + " handS: " + handS.size());
                 // If we have to obey the suit
-                if(beliefs[pos].here(winning.suit))
+                if(beliefs[turn].here(winning.suit))
                 {
                     // If p2 obeyed the suit, select the one with highest rank
                     if(table[order[1]].suit == winning.suit)
@@ -225,13 +225,13 @@ class GameState
                     {
                         System.out.println("I can't win playing lowest obey suit");
                         // We can't win, play the lowest card
-                        return beliefs[pos].lowest(winning.suit, pos);
+                        return beliefs[turn].lowest(winning.suit, turn);
                     }
                     else
                     {
                         System.out.println("Play higher or lowest suit card");
                         // Play a higher card of the obeyed suit or lowest
-                        return playCardSuit(winning.suit, winning, pos);
+                        return playCardSuit(winning.suit, winning, turn);
                     }
                 }
                 // We don't have the suit
@@ -239,22 +239,22 @@ class GameState
                     // If spades were played but we don't have any
                     if(winning.suit == Suit.SPADES)
                         // We can't win, get rid of the smallest card
-                        return beliefs[pos].lowestCardInHand(pos);
+                        return beliefs[turn].lowestCardInHand(turn);
                     // If we don't have to obey and the played suit is not spades
                     else
                         // We don't have any spades either
-                        if(!beliefs[pos].here(Suit.SPADES))
+                        if(!beliefs[turn].here(Suit.SPADES))
                             // We can't win, get rid of the smallest card
-                            return beliefs[pos].lowestCardInHand(pos);
+                            return beliefs[turn].lowestCardInHand(turn);
                         // If we don't have to obey and we can play a spade
                         else
                             // If player 2 played a trump
                             if(table[order[1]].suit == Suit.SPADES)
                                 // Play winning trump or the smallest card we have
-                                return playCardTrump(table[order[1]], pos); // want to avoid handS for findLowestCard?
+                                return playCardTrump(table[order[1]], turn); // want to avoid handS for findLowestCard?
                             else
                                 // We don't have to obey and spades were not played
-                                return beliefs[pos].lowest(Suit.SPADES, pos);
+                                return beliefs[turn].lowest(Suit.SPADES, turn);
             }
         }
     }
@@ -277,7 +277,7 @@ class GameState
             return Game.intToCard(i);
         
         // We can't beat the spade, play the smallest card
-        return beliefs[pos].lowestCardInHand(loc);    
+        return beliefs[turn].lowestCardInHand(loc);    
     }
         
     /*
