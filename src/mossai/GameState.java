@@ -46,10 +46,9 @@ class GameState
         // Convert the hand into an integer array.
         int[] hand = new int[Game.DECK_SIZE];
         Arrays.fill(hand, -1);
+        
         for(Card c : deal)
-        {
             hand[Game.cardToInt(c)] = pos;
-        }
         
         beliefs = new BeliefState[3];
         beliefs[pos] = new BeliefState(pos, new BeliefState(), hand);
@@ -131,11 +130,11 @@ class GameState
                     {
                         System.out.println("I think p3 will also play this suit");
                         // Get p3s highest card
-                        Card p3 = getOpponentsHighestCardSuit(winning.suit, order[2], beliefs[pos]);
+                        Card p3 = getOpponentsHighestCardSuit(winning.suit, order[2]);
                         // Find out which is higher
                         Card highestCardPlayed = table[0].rank > p3.rank ? table[0] : p3;
                         // Play a higher card or the lowest card if can't win
-                        return playCardSuit(winning.suit, highestCardPlayed, beliefs[pos], pos);
+                        return playCardSuit(winning.suit, highestCardPlayed, pos);
                     }
                     // If we think that p3 doesn't have to obey
                     else
@@ -152,7 +151,7 @@ class GameState
                         {
                             System.out.println("I think p3 doesn't have this suit and he can't trump");
                             // Play a higher card or the lowest card of the suit
-                            return playCardSuit(winning.suit, table[0], beliefs[pos], pos);
+                            return playCardSuit(winning.suit, table[0], pos);
                         }
                     }
                 }
@@ -181,10 +180,10 @@ class GameState
                                 if(beliefs[pos].maybeHas(Suit.SPADES, pos))
                                 {
                                     // get p3s highest trump
-                                    Card p3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2], beliefs[pos]);
+                                    Card p3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2]);
                                     
                                     // play a higher spade or the lowest card we have
-                                    return playCardTrump(p3, beliefs[pos], pos);
+                                    return playCardTrump(p3, pos);
                                 }
                                 else
                                     // We can't win, get rid of the smallest card
@@ -237,7 +236,7 @@ class GameState
                     {
                         System.out.println("Play higher or lowest suit card");
                         // Play a higher card of the obeyed suit or lowest
-                        return playCardSuit(winning.suit, winning, beliefs[pos], pos);
+                        return playCardSuit(winning.suit, winning, pos);
                     }
                 }
                 // We don't have the suit
@@ -257,7 +256,7 @@ class GameState
                             // If player 2 played a trump
                             if(table[1].suit == Suit.SPADES)
                                 // Play winning trump or the smallest card we have
-                                return playCardTrump(table[1], beliefs[pos], pos); // want to avoid handS for findLowestCard?
+                                return playCardTrump(table[1], pos); // want to avoid handS for findLowestCard?
                             else
                                 // We don't have to obey and spades were not played
                                 return beliefs[pos].lowest(Suit.SPADES, pos);
@@ -266,42 +265,42 @@ class GameState
     }
 
     
-    public static Card playCardSuit(Suit selectedSuit, Card highestCardPlayed, BeliefState myState, int loc)
+    public Card playCardSuit(Suit s, Card highestCardPlayed, int loc)
     {
         // Go through each one of the cards of that suit that we have, above the highest
-        for(int i = Game.suitBegins(selectedSuit)+highestCardPlayed.rank; i <= Game.suitEnds(selectedSuit); i++)
+        for(int i = Game.suitBegins(s)+highestCardPlayed.rank; i <= Game.suitEnds(s); i++)
             // If anything higher than that is found, play that card (doesn't have to be the highest)
             return Game.intToCard(i);
         
         // If we can't beat what's on the table, play the lowest card
-        return myState.lowest(selectedSuit, loc);
+        return beliefs[0].lowest(s, loc);
     }
     
-    public static Card playCardTrump(Card highestSpadeCard, BeliefState myState, int loc)
+    private Card playCardTrump(Card highestSpadeCard, int loc)
     {
         for(int i = Game.suitBegins(Suit.SPADES)+highestSpadeCard.rank; i <= Game.suitEnds(Suit.SPADES); i++)
             return Game.intToCard(i);
         
         // We can't beat the spade, play the smallest card
-        return myState.lowestCardInHand(loc);    
+        return beliefs[pos].lowestCardInHand(loc);    
     }
         
     /*
         Heuristic for evaluating what is in the opponents hand. 
         Right now it is always paranoid.
     */
-    private Card getOpponentsHighestCardSuit(Suit suit, int opponent, BeliefState myState)
+    private Card getOpponentsHighestCardSuit(Suit s, int opponent)
     {
-        int i = Game.suitBegins(suit);
+        int i = Game.suitBegins(s);
         Card highest = Game.intToCard(i);
         Card opponentCard;
         
-        for(i = Game.suitBegins(suit)+1; i <= Game.suitEnds(suit); i++)
+        for(i = Game.suitBegins(s)+1; i <= Game.suitEnds(s); i++)
         {
             opponentCard = Game.intToCard(i);
             
             // If we think that there is a good chance that they have the card
-            if(myState.chance(opponentCard, opponent) > Raptor.POSITIVE)
+            if(beliefs[0].chance(opponentCard, opponent) > Raptor.POSITIVE)
                 // If it is a higher card
                 if(opponentCard.rank > highest.rank)
                     highest = opponentCard;
@@ -311,24 +310,19 @@ class GameState
         return highest;
     }
 
-    private boolean opponentHigherCardSuit(Suit suit, int loc, int opponent, BeliefState myState)
+    private boolean opponentHigherCardSuit(Suit s, int loc, int opponent, BeliefState myState)
     {
-        Card myHighestCard = myState.highest(suit, loc);
+        Card myHighestCard = myState.highest(s, loc);
         Card opponentCard;
         
-        for(int i = Game.suitBegins(suit)+myHighestCard.rank; i <= Game.suitEnds(suit); i++)
+        for(int i = Game.suitBegins(s)+myHighestCard.rank; i <= Game.suitEnds(s); i++)
         {
             opponentCard = Game.intToCard(i);
             
-            // If we are certain that the opponent has a higher card than we do
-            if(myState.certain(opponentCard, opponent))
+            // If we think that there is a good chance that the opponent has a higher card
+            if(myState.chance(opponentCard, opponent) > Raptor.POSITIVE)
                 //return opponentCard;
                 return true;
-            else
-                // If we think that there is a good chance that the opponent has a higher card
-                if(myState.chance(opponentCard, opponent) > Raptor.POSITIVE)
-                    //return opponentCard;
-                    return true;
         }
         
         return false;
