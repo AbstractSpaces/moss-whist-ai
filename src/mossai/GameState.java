@@ -129,7 +129,7 @@ class GameState
                         // Find out which is higher
                         Card highestCardPlayed = table[order[0]].rank > p3.rank ? table[order[0]] : p3;
                         // Play a higher card or the lowest card if can't win
-                        return playCardSuit(winning.suit, highestCardPlayed);
+                        return playCardSuit(highestCardPlayed);
                     }
                     // If we think that p3 doesn't have to obey
                     else
@@ -146,7 +146,7 @@ class GameState
                         {
                             System.out.println("I think p3 doesn't have this suit and he can't trump");
                             // Play a higher card or the lowest card of the suit
-                            return playCardSuit(winning.suit, table[order[0]]);
+                            return playCardSuit(table[order[0]]);
                         }
                     }
                 }
@@ -203,28 +203,29 @@ class GameState
                 // If we have to obey the suit
                 if(beliefs[turn].here(winning.suit))
                 {
+					Card highestCardPlayed;
                     // If p2 obeyed the suit, select the one with highest rank
                     if(table[order[1]].suit == winning.suit)
                         if(table[order[0]].rank > table[order[1]].rank)
-                            winning = table[order[0]];
+                            highestCardPlayed = table[order[0]];
                         else
-                            winning = table[order[1]];
+                            highestCardPlayed = table[order[1]];
                     // If p2 didn't obey the suit
                     else
                         // If player 2 played a trump
                         if(table[order[1]].suit == Suit.SPADES)
                             // p2 is trumping p1s card
-                            winning = table[order[1]];
+                            highestCardPlayed = table[order[1]];
                         // Otherwise it played a card outside of the suit that's not a trump
                         else
                             // p2 can't win, highest card is by p1
                             // scenario: trumps played by p2 didn't have any or p2 doesn't have the tick suit and didn't play any trumps
-                            winning = table[order[0]];
+                            highestCardPlayed = table[order[0]];
                     
-                    System.out.println("I'm obeying the suit. Highest Card on the table: " + winning.toString());
+                    System.out.println("I'm obeying the suit. Highest Card on the table: " + highestCardPlayed.toString());
                     
                     // If we have to play, but a spade has been played outside of it's suit
-                    if(winning.suit != Suit.SPADES && winning.suit == Suit.SPADES)
+                    if(winning.suit != Suit.SPADES && highestCardPlayed.suit == Suit.SPADES)
                     {
                         System.out.println("I can't win playing lowest obey suit");
                         // We can't win, play the lowest card
@@ -234,7 +235,7 @@ class GameState
                     {
                         System.out.println("Play higher or lowest suit card");
                         // Play a higher card of the obeyed suit or lowest
-                        return playCardSuit(winning.suit, winning);
+                        return playCardSuit(highestCardPlayed);
                     }
                 }
                 // We don't have the suit
@@ -263,16 +264,16 @@ class GameState
     }
 
     
-    public Card playCardSuit(Suit s, Card highestCardPlayed)
+    public Card playCardSuit(Card c)
     {
         // Go through each one of the cards of that suit that we have, above the highest
-        for(int i = Game.suitBegins(s)+highestCardPlayed.rank; i <= Game.suitEnds(s); i++)
+        for(int i = Game.cardToInt(c); i <= Game.suitEnds(c.suit); i++)
             // If anything higher than that is found, play that card (doesn't have to be the highest)
             if(beliefs[turn].here(Game.intToCard(i)))
                 return Game.intToCard(i);
         
         // If we can't beat what's on the table, play the lowest card
-        return beliefs[turn].lowest(s, turn);
+        return beliefs[turn].lowest(c.suit, turn);
     }
     
     private Card playCardTrump(Card highestSpadeCard)
