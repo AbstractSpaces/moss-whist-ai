@@ -108,16 +108,20 @@ class GameState
         // Evaluation for the first player.
         if(turn == order[0])
         {
-            // As a leader, we want to play the highest card to keep on wining
+            int player2 = (pos+1)%3;
+            int player3 = (pos+2)%3;
             
-            // if we think we can beat p2 && p3
-            // else
-                // if risk worth taking 
-            
-            // If we think that p2 or p3 have a higher card in that same suit
-            //return findLowestCard(handH, handC, handD, handS);
-            // else we can play
-            return myState.highestCardInHand(loc);
+            // As a leader, we want to play the highest card to keep on winin', to keep on leadin'
+            for(Suit suit : Suit.values())
+            {
+                // If we think that we can beat both p2 && p3 in the chosen suit
+                if(!opponentHigherCardSuit(suit, loc, player2, myState) && !opponentHigherCardSuit(suit, loc, player3, myState))
+                {
+                    return myState.highest(suit, loc);
+                }
+            }
+            // If we think that we can't beat either p2 or p3, play the lowest card we got
+            return myState.lowestCardInHand(loc);
         }
         else
         {
@@ -355,9 +359,37 @@ class GameState
     */
     public static Card getOpponentsHighestCardSuit(Suit suit, int opponent, BeliefState myState)
     {
+        
         return myState.highest(suit, opponent);
     }
-    
+
+    private boolean opponentHigherCardSuit(Suit suit, int loc, int opponent, BeliefState myState)
+    {
+        double riskProne = 0.3;
+        Card myHighestCard = myState.highest(suit, loc);
+        Card opponentCard;
+        for(int i = Game.suitBegins(suit)+myHighestCard.rank; i <= Game.suitEnds(suit); i++)
+        {
+            opponentCard = Game.intToCard(i);
+            
+            // If we are certain that the opponent has a higher card than we do
+            if(myState.certain(opponentCard, opponent))
+            {
+                //return opponentCard;
+                return true;
+            }
+            else
+            {
+                // If we think that there is a good chance that the opponent has a higher card
+                if(myState.chance(myHighestCard, opponent) > riskProne)
+                {
+                    //return opponentCard;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     
     /** Use Monte Carlo tree search to evaluate the best move from this state. */

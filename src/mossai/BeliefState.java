@@ -222,7 +222,7 @@ final class BeliefState
     boolean here(Suit s) { return cards[viewer][Game.suitToInt(s)] > 0; }
     
     /** Return the probability of a card being in a location. */
-    private double chance(Card c, int loc)
+    public double chance(Card c, int loc)
     {
         if(!tbc(c))
         {
