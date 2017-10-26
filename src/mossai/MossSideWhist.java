@@ -98,7 +98,7 @@ public class MossSideWhist
         Card[] discard = agents.get(leader).discard();
         for(int i = 0; i < 4; i++)
         {
-            if(i > discard.length || !hands.get(leader).remove(discard[i]))
+            if(i>=discard.length || !hands.get(leader).remove(discard[i]))
             {
                 hands.get(leader).remove(0);//if illegitimate discards, the 0 card is discarded.
             }        //could include a score penalty here as well.
