@@ -1,15 +1,39 @@
 package mossai;
 
 import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /** An agent (hopefully) capable of intelligently playing Moss Side Whist. */
 public class Raptor implements MSWAgent
 {
-    /** The agent's place relative to the leader. */
-    public final int pos;
+    /** Bias constant for Monte Carlo play outs. */
+    static final double BIAS;
+    
+    /** Whether to treat draws as wins in Monte Carlo play outs. */
+    static final boolean DRAW_WINS;
+    
+    /** How long to keep running Monte Carlo on samples each turn, in milliseconds. */
+    static final int SEARCH_TIME;
+    
+    /** Number of play outs to sample in each Monte Carlo search. */
+    static final int MC_SAMPLES;
+    
+    /** The probability threshold above which to treat as certain that an opponent possesses a card. */
+    static final double POSITIVE;
+    
+    /** The probability threshold below which to treat as certain that an opponent does not possess a card. */
+    static final double NEGATIVE;
+    
+    static
+    {
+        BIAS = Math.sqrt(2.0);
+        DRAW_WINS = false;
+        SEARCH_TIME = 190;
+        MC_SAMPLES = 10;
+        POSITIVE = 0.99;
+        NEGATIVE = 0.01;
+    }
     
     /** Names of players, left to right from the agent. */
     private final String[] names;
@@ -19,52 +43,11 @@ public class Raptor implements MSWAgent
     
     private GameState state;
     
-    /**
-     * The agent's belief about the opponent's cards. Storing between tricks
-     * improves performance.
-     */
-    private BeliefState belief;
-    
-    /**
-     * A non-player specific belief from which the opponent's perspectives can
-     * be derived.
-     */
-    private final BeliefState history;
-    
-    // Parameters for modification via reinforcement learning.
-    /** Bias constant for Monte Carlo play outs. */
-    public final int bias;
-    
-    /** Whether to treat draws as wins in Monte Carlo playouts. */
-    public final boolean drawWins;
-    
-    /** How long to keep running Monte Carlo on samples each turn. */
-    public final long searchTime;
-    
-    /** Number of play outs to sample in each Monte Carlo search. */
-    public final int MCsamples;
-    
-    /** The probability threshold above which to treat as certain that an opponent possesses a card. */
-    public final double positive;
-    
-    /** The probability threshold below which to treat as certain that an opponent does not possess a card. */
-    public final double negative;
-    
-    public Raptor(int b, boolean dw, long t, int mcs, double p, double n)
+    public Raptor()
     {
-        pos = -1;
         names = new String[] {"Clever Girl", "", ""};
         players = new HashMap(3);
         state = null;
-        belief = null;
-        history = new BeliefState();
-        
-        bias = b;
-        drawWins = dw;
-        searchTime = t;
-        MCsamples = mcs;
-        positive = p;
-        negative = n;
     }
     
     @Override
@@ -77,10 +60,10 @@ public class Raptor implements MSWAgent
     @Override
     public void seeHand(List<Card> deal, int order)
     {
-        pos = order;
-        state = new GameState(this, order);
-        for(int i = 0; i < 3; i++) players.put(names[i], (order+i)%3);
-        belief = new BeliefState(order, history, Game.CardstoInts(deal, order));
+        state = new GameState(order, deal);
+		
+        for(int i = 0; i < 3; i++)
+			players.put(names[i], (order+i)%3);
     }
 
     @Override
@@ -89,99 +72,87 @@ public class Raptor implements MSWAgent
         // TODO: Discard strategy.
         // todo idea: discard and playout to see if a good discard
         
+        BeliefState belief = state.beliefs[state.pos];
+        
         int discarded = 0;
         Card card;
         Card[] discardPile = new Card[4];
-        List<Card>[] hand =  belief.getHand().clone();
         
         while(discarded < 4)
         {
-            List<Card> handH = hand[Game.suitToInt(Suit.HEARTS)];
-            List<Card> handC = hand[Game.suitToInt(Suit.CLUBS)];
-            List<Card> handD = hand[Game.suitToInt(Suit.DIAMONDS)];
-        
+            // if state.beliefs.
             // If any of the suits are below 3 cards, get rid of them
-            card = checkDiscardSuit(handH);
+            card = checkDiscardSuit(Suit.HEARTS, belief);
             if(card == null)
             {
-                card = checkDiscardSuit(handC);
+                card = checkDiscardSuit(Suit.DIAMONDS, belief);
                 if(card == null)
                 {
-                    card = checkDiscardSuit(handD);        
+                    card = checkDiscardSuit(Suit.CLUBS, belief);        
                 }
             }
-            if(card != null)
-            {
-                discardPile[discarded] = card;
-                hand[Game.suitToInt(card.suit)].remove(card);
-                discarded++;
-            }
-            else
+            if(card == null)
             {
                 // Otherwise get rid of the lowest card (but not spades)
-                card = GameState.findLowestCard(handH, handC, handD, new ArrayList<Card>());
+                card = belief.lowestCardInHand(0);
             }
             
             // add that card to discard pile
             discardPile[discarded] = card;
-            
-            // remove it from the hand
-            hand[Game.suitToInt(card.suit)].remove(card);
             belief.cardPlayed(card, 0, null);
-            
             discarded++;
         }
         
         return discardPile;
     }
-    private Card checkDiscardSuit(List<Card> handSuit)
+    private Card checkDiscardSuit(Suit suit, BeliefState belief)
     {
         Card card = null;
         
-        if(!handSuit.isEmpty() && handSuit.size() < 3)
-        {
-            if(handSuit.get(0).rank < 12)
-            {
-                card = handSuit.get(0);
-            }
-        }
+        //if(belief.suitCount(Suit.HEARTS) < 2)
+        //{
+            // if card is lower than rank 14
+                // card = that suit card
+        //}
         return card;
     }
-    
+
+
     @Override
     public Card playCard()
     {
         Card best = null;
         long start = System.nanoTime();
- /*       
+       
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
-        while(System.nanoTime() - start < searchTime)
+        while(System.nanoTime() - start < SEARCH_TIME * 1000000)
         {
-            Card c = GameState.monteCarlo(state, belief, history);
+            Card c = state.monteCarlo();
             
-            if(results.get(c) == null) results.put(c, 1);
-            else results.put(c, results.get(c) + 1);
+            if(results.get(c) == null)
+                results.put(c, 1);
+            else
+                results.put(c, results.get(c) + 1);
         }
         
         for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
-  */      
-        // Temp version.
-        best = GameState.greedyEval(state, belief);
         
-        update(best, pos);
+        // Temp version.
+        //best = state.greedyEval();
+        
+        state.advance(best);
         return best;
     }
 
     @Override
-    public void seeCard(Card card, String agent) { update(card, players.get(agent)); }
+    public void seeCard(Card card, String agent) { state.advance(card); }
 
     @Override
     public void seeResult(String winner)
     {
-        // Verify that state is working properly.
-        if(state.getFirst() != players.get(winner)) System.out.println("Trick over but state not set properly.");
+        
     }
 
     @Override
@@ -191,21 +162,10 @@ public class Raptor implements MSWAgent
         int[] scores = state.getScores();
         
         for(String n : names)
-        {
-            if(scores[players.get(n)] != scoreboard.get(n))
-            {
-                System.out.println("Score incorrect for " + n + ".");
-            }
-        }
+			if(scores[players.get(n)] != scoreboard.get(n))
+				System.out.println("Score incorrect for " + n + ".");
     }
 
     @Override
     public String sayName() { return names[0]; }
-    
-    private void update(Card played, int player)
-    {
-        belief.cardPlayed(played, player, state.getLead());
-        history.cardPlayed(played, player, state.getLead());
-        state.advance(played);
-    }
 }
