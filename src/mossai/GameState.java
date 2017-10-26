@@ -76,19 +76,11 @@ class GameState
             int[] cards = beliefs[pos].sampleState();
             
             for(int i = 1; i < 3; i++)
-            {
-                int p = (pos + i) % 3;
-                beliefs[i] = new BeliefState(p, old.beliefs[p], cards);
-            }
+                beliefs[(pos+i)%3] = new BeliefState((pos+i)%3, old.beliefs[(pos+i)%3], cards);
         }
         else
-        {
             for(int i = 1; i < 3; i++)
-            {
-                int p = (pos + i) % 3;
-                beliefs[i] = new BeliefState(old.beliefs[p]);
-            }
-        }
+                beliefs[(pos+i)%3] = new BeliefState(old.beliefs[(pos+i)%3]);
         
         playthroughs = 0.0;
         wins = 0.0;
