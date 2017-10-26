@@ -152,7 +152,7 @@ public class Raptor implements MSWAgent
     @Override
     public void seeResult(String winner)
     {
-        System.out.println("seeR->winner: " + players.get(winner));
+        
     }
 
     @Override
