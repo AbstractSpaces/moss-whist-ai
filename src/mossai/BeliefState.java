@@ -248,8 +248,8 @@ final class BeliefState
     Card lowest(Suit s, int loc)
     {
         if(maybeHas(s, loc))
-            for(int c = Game.suitBegins(s); c >= Game.suitEnds(s); c++)
-                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
+            for(int c = Game.suitBegins(s); c <= Game.suitEnds(s); c++)
+                if(chance(Game.intToCard(c), loc) < Raptor.POSITIVE)
                     return Game.intToCard(c);
 		
         return null;

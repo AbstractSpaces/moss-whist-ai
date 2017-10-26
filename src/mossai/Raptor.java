@@ -123,7 +123,7 @@ public class Raptor implements MSWAgent
     @Override
     public Card playCard()
     {
-		System.out.println("Starting plaCard algorithm.");
+	
         Card best = null;
         long start = System.nanoTime();
        
@@ -142,9 +142,12 @@ public class Raptor implements MSWAgent
         
         for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
         
+        
         // Temp version.
         //best = state.greedyEval();
         
+        //Card best = state.followSuit(state.table[state.order[0]]);
+        //System.out.println(best.toString());
         state.advance(best);
         return best;
     }
