@@ -395,6 +395,7 @@ class GameState
         // Skip the whole process if the node is already expanded.
         if(children == null)
         {
+			System.out.println("Expanding node during agent turn: " + (turn == pos));
             children = new ArrayList();
 
             for(Suit s : Suit.values())
@@ -407,15 +408,21 @@ class GameState
                         // If the agent has this card.
                         if(beliefs[pos].here(Game.intToCard(i)))
                         {
-                                // Simulate a legal move.
-                                GameState child = new GameState(this, false);
-                                child.advance(Game.intToCard(i));
+							// Simulate a legal move.
+							GameState child = new GameState(this, false);
+							System.out.println("Cloned state for child, agent move: " + (child.turn == pos));
+							child.advance(Game.intToCard(i));
+							System.out.println("Agent move made, next turn: " + child.turn + ", is agent: " + (child.turn == pos));
 
-                                // Simulate predicted opponent moves.
-                                while(child.turn != pos)
-                                        child.advance(child.greedyEval());
+							// Simulate predicted opponent moves.
+							while(child.turn != pos)
+							{
+								System.out.println("Simulating turn: " + child.turn + ", is agent: " + (child.turn == pos));
+								child.advance(child.greedyEval());
+								System.out.println("Next turn: " + child.turn + ", is agent: " + (child.turn == pos));
+							}
 
-                                children.add(child);
+							children.add(child);
                         }
                     }
                 }
