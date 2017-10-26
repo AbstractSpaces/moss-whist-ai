@@ -122,11 +122,10 @@ class GameState
                 if(beliefs[turn].has(leading.suit, turn))
                 {
                     System.out.println("I'm obeying the suit.");
-                    
                     Card cP3 = leading;
                     
                     // If we think that p3 has to obey too
-                    if(beliefs[turn].has(leading.suit, order[2]) == true)
+                    if(beliefs[turn].has(leading.suit, order[2]))
                     {
                         System.out.println("I think p3 will also play this suit");
                         cP3 = getOpponentsHighestCardSuit(leading.suit, order[2]);
@@ -135,7 +134,7 @@ class GameState
                     else
                     {
                         // If we think that p3 is going to trump the obeyed suit
-                        if(leading.suit != Suit.SPADES && beliefs[turn].has(Suit.SPADES, order[2]) == true)
+                        if(leading.suit != Suit.SPADES && beliefs[turn].has(Suit.SPADES, order[2]))
                         {
                             System.out.println("I think p3 will play a trump");
                             cP3 = getOpponentsHighestCardSuit(Suit.SPADES, order[2]);
@@ -209,13 +208,13 @@ class GameState
         // If we have to obey the suit, but a spade has been played outside of it's suit
         if(leading.suit != Suit.SPADES && highestCardPlayed.suit == Suit.SPADES)
         {
-            System.out.println("I can't win playing lowest out of the leading suit");
+            System.out.println("I can't win, I'm playing lowest out of the leading suit");
             // We can't win, play the lowest card
             play = beliefs[turn].lowest(leading.suit, turn);
         }
         else
         {
-            System.out.println("Play higher or lowest suit card");
+            System.out.println("I'm playing to win the trick");
             // Play a higher card of the obeyed suit or lowest
             play = followSuit(highestCardPlayed);
         }
