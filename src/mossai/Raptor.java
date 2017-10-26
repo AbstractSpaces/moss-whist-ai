@@ -31,7 +31,7 @@ public class Raptor implements MSWAgent
         DRAW_WINS = false;
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
-        POSITIVE = 0.99;
+        POSITIVE = 0.75;
         NEGATIVE = 0.01;
     }
     
@@ -152,7 +152,7 @@ public class Raptor implements MSWAgent
     @Override
     public void seeResult(String winner)
     {
-        
+        System.out.println("seeR->winner: " + players.get(winner));
     }
 
     @Override
