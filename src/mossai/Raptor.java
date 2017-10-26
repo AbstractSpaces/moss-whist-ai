@@ -123,22 +123,22 @@ public class Raptor implements MSWAgent
     {
         Card best = null;
         long start = System.nanoTime();
- /*       
+       
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
         while(System.nanoTime() - start < SEARCH_TIME * 1000000)
         {
-            Card c = GameState.monteCarlo();
+            Card c = state.monteCarlo();
             
             if(results.get(c) == null)
-				results.put(c, 1);
+                results.put(c, 1);
             else
-				results.put(c, results.get(c) + 1);
+                results.put(c, results.get(c) + 1);
         }
         
         for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
-  */      
+        
         // Temp version.
         //best = state.greedyEval();
         
