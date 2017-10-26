@@ -44,7 +44,6 @@ class Game
             CARD_MAP.put(c, value);
             CARD_ARRAY[value] = c;
         }
-        
     }
     
     /** Take a suit, return an index for it. */

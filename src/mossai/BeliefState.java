@@ -79,9 +79,7 @@ final class BeliefState
         {
             // If the card is in the hand.
             if(cardState[c] == viewer)
-            {
-                locs[c] = 1 << viewer;
-            }
+				locs[c] = 1 << viewer;
             // If the hand was a potential location but now isn't.
             else if(maybeHas(Game.intToCard(c), viewer))
             {
@@ -136,6 +134,7 @@ final class BeliefState
             for(int c = Game.suitBegins(s); c >= Game.suitEnds(s); c++)
                 if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
                     return Game.intToCard(c);
+		
         return null;
     }
     
