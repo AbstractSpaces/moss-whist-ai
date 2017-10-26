@@ -100,31 +100,6 @@ class GameState
      * Use a fixed, greedy strategy to determine the active player's move from
      * this state.
      */
-    /*
-    Card greedyEval()
-    {   
-        // Evaluation for the first player.
-        if(turn == order[0])
-        {
-            
-        }
-        else
-        {
-            Card winning = table[order[0]];
-            
-            // Evaluation for the second player.
-            if(turn == order[1])
-            {
-                
-            }
-            // Evaluation for the third player.
-            else
-            {
-                
-            }
-        }
-    }
-    */
     public Card greedyEval()
     {
         int loc = pos;
@@ -354,29 +329,21 @@ class GameState
     
     public static Card playCardSuit(Suit selectedSuit, Card highestCardPlayed, BeliefState myState, int loc)
     {
-        // Go through each one of the cards of that suit that we have 
-        for(int i = 0; i < selectedSuit.size() ; i++)
+        // Go through each one of the cards of that suit that we have, above the highest
+        for(int i = Game.suitBegins(selectedSuit)+highestCardPlayed.rank; i <= Game.suitEnds(selectedSuit); i++)
         {
-            // If we have a card that's better than the highest card played
-            if(selectedSuit.get(i).rank > highestCardPlayed.rank)
-            {
-                // Play the higher card (doesn't have to be the highest
-                return selectedSuit.get(i);
-            }
+            // If anything higher than that is found, play that card (doesn't have to be the highest)
+            return Game.intToCard(i);
         }
         // If we can't beat what's on the table, play the lowest card
         return myState.lowest(selectedSuit, loc);
     }
+    
     public static Card playCardTrump(Card highestSpadeCard, BeliefState myState, int loc)
     {
-        // Check if we can beat the spade
-        for(int i = 0; i < handS.size(); i++)
+        for(int i = Game.suitBegins(Suit.SPADES)+highestSpadeCard.rank; i <= Game.suitEnds(Suit.SPADES); i++)
         {
-            // If we can beat the spade, play our spade
-            if(handS.get(i).rank > highestSpadeCard.rank)
-            {
-                return handS.get(i);
-            }
+            return Game.intToCard(i);
         }
         // We can't beat the spade, play the smallest card
         return myState.lowestCardInHand(loc);    
