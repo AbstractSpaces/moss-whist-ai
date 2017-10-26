@@ -31,7 +31,7 @@ public class Raptor implements MSWAgent
         DRAW_WINS = false;
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
-        POSITIVE = 0.99;
+        POSITIVE = 0.75;
         NEGATIVE = 0.01;
     }
     
@@ -64,39 +64,49 @@ public class Raptor implements MSWAgent
 		
         for(int i = 0; i < 3; i++)
 			players.put(names[i], (order+i)%3);
+		
+		System.out.println("Leader: " + order);
     }
 
     @Override
     public Card[] discard()
     {
-        // TODO: Discard strategy.
-        // Call belief.cardPlayed for each discarded card.
+		Card[] chosen = new Card[4];
+		
+        for(int i = 0; i < 4; i++)
+			chosen[i] = state.discardLow();
+		
+		return chosen;
     }
-
+	
     @Override
     public Card playCard()
     {
+	
         Card best = null;
         long start = System.nanoTime();
- /*       
+/*       
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
         while(System.nanoTime() - start < SEARCH_TIME * 1000000)
         {
-            Card c = GameState.monteCarlo();
+            Card c = state.monteCarlo();
             
             if(results.get(c) == null)
-				results.put(c, 1);
+                results.put(c, 1);
             else
-				results.put(c, results.get(c) + 1);
+                results.put(c, results.get(c) + 1);
         }
         
-        for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
-  */      
+        for(Card c : results.keySet())
+			if(best == null || results.get(c) > results.get(best))
+				best = c;
+*/        
+        
         // Temp version.
         best = state.greedyEval();
-        
+		
         state.advance(best);
         return best;
     }
@@ -107,7 +117,9 @@ public class Raptor implements MSWAgent
     @Override
     public void seeResult(String winner)
     {
-        
+        // Verify that state is working correctly.
+		if(state.active() != players.get(winner))
+			System.out.println("State judged incorrect winner.");
     }
 
     @Override

@@ -8,22 +8,22 @@ import java.util.List;
 class GameState
 {
     /** The agent's place relative to the leader. */
-    private static int pos;
+    public static int pos;
     
     /** The indices of players in their turn order for this trick. */
-    private int[] order;
+    public int[] order;
     
     /** The player currently taking their turn, having not yet played their card. */
     private int turn;
     
     /** The cards so far played by each player this trick. */
-    private final Card[] table;
+    public final Card[] table;
     
     /** Running tally of the scores. */
     private final int[] scores;
     
     /** The beliefs held by the agent and the two simulated opponents. */
-    private final BeliefState[] beliefs;
+    public final BeliefState[] beliefs;
     
     /** Number of Monte Carlo simulations that have used this state. */
     private double playthroughs;
@@ -38,16 +38,17 @@ class GameState
     GameState(int leader, List<Card> deal)
     {
         pos = leader;
-        order = new int[] {leader, (leader+1)%3, (leader+2)%3};
-        turn = order[0];
+        order = new int[] {0, 1, 2};
+        turn = 0;
         table = new Card[3];
         scores = new int[] {-8, -4, -4};
         
         // Convert the hand into an integer array.
         int[] hand = new int[Game.DECK_SIZE];
         Arrays.fill(hand, -1);
+        
         for(Card c : deal)
-			hand[Game.cardToInt(c)] = pos;
+            hand[Game.cardToInt(c)] = pos;
         
         beliefs = new BeliefState[3];
         beliefs[pos] = new BeliefState(pos, new BeliefState(), hand);
@@ -75,51 +76,92 @@ class GameState
             int[] cards = beliefs[pos].sampleState();
             
             for(int i = 1; i < 3; i++)
-            {
-                int p = (pos + i) % 3;
-                beliefs[i] = new BeliefState(p, old.beliefs[p], cards);
-            }
+                beliefs[(pos+i)%3] = new BeliefState((pos+i)%3, old.beliefs[(pos+i)%3], cards);
         }
         else
-        {
             for(int i = 1; i < 3; i++)
-            {
-                int p = (pos + i) % 3;
-                beliefs[i] = new BeliefState(old.beliefs[p]);
-            }
-        }
+                beliefs[(pos+i)%3] = new BeliefState(old.beliefs[(pos+i)%3]);
         
         playthroughs = 0.0;
         wins = 0.0;
         children = null;
     }
-    
+	
+	/** Return the player whose turn this state represents. */
+	int active() { return turn; }
+	
+	/** Return the running score tally. */
+	int[] getScores() { return Arrays.copyOf(scores, 3); }
+	
     /**
      * Use a fixed, greedy strategy to determine the active player's move from
      * this state.
      */
     Card greedyEval()
-    {   
+    {
+		// This is just aid readability.
+		BeliefState active = beliefs[turn];
+		
+		// The card currently in the running to win.
+		Card contested;
+		
+		// The card attempting to beat the contested.
+		Card challenger;
+		
         // Evaluation for the first player.
         if(turn == order[0])
         {
-            
+			// Compare the available cards of each suit, choose the first one
+			// with a good chance at winning.
+            for(Suit s : Suit.values())
+			{
+				contested = active.highest(s);
+				
+                if(!active.otherHasHigher(contested, left()) && !active.otherHasHigher(contested, right()))
+                    return contested;
+			}
         }
         else
         {
-            Card winning = table[order[0]];
+            contested = table[right()];
             
             // Evaluation for the second player.
             if(turn == order[1])
             {
-                
+				// If the third player is expected to follow suit.
+				if(active.otherHas(contested.suit, left()))
+				{
+					challenger = active.highestInOther(contested.suit, left());
+
+					if(challenger.rank > contested.rank)
+						contested = challenger;
+				}
+				// If the third player is expected to trump.
+				else if(contested.suit != Game.TRUMP && active.otherHas(Game.TRUMP, left()))
+					contested = active.highestInOther(Game.TRUMP, left());
+				
             }
             // Evaluation for the third player.
             else
             {
-                
+				challenger = table[right()];
+                // See if the second player beat the lead.
+				if((challenger.suit == Game.TRUMP && contested.suit != Game.TRUMP) || challenger.rank > contested.rank)
+					contested = challenger;
             }
+			
+			// Whether playing second or third, attempt to beat the odds-on favourite.
+			if(active.hasHigher(contested))
+			{
+				challenger = active.highest(contested.suit);
+
+				if(challenger != null)
+					return challenger;
+			}
         }
+		
+        // If winning is unattainable, throw away a low value card.
+		return active.lowest();
     }
     
     /** Use Monte Carlo tree search to evaluate the best move from this state. */
@@ -141,14 +183,20 @@ class GameState
         
         return best.table[pos];
     }
-    
-    int[] getScores() { return Arrays.copyOf(scores, 3); }
+	
+	/** Pick the lowest ranked card for discarding. */
+	Card discardLow()
+	{
+		Card d = beliefs[pos].lowest();
+		beliefs[pos].cardPlayed(d, pos, null);
+		return d;
+	}
     
     /** Move the state forward by one turn. */
     void advance(Card played)
     {
         for(BeliefState b : beliefs)
-			b.cardPlayed(played, turn, table[0]);
+			b.cardPlayed(played, turn, table[order[0]]);
 		
         table[turn] = played;
         turn = (turn + 1) % 3;
@@ -170,16 +218,23 @@ class GameState
                     beat = true;
                 
                 if(beat)
-					best = p;
+                    best = p;
             }
             
             Arrays.fill(table, null);
             scores[best]++;
-            order[0] = best;
-            order[1] = (best + 1) % 3;
-            order[2]= (best + 2) % 3;
+            turn = best;
+            order[0] = turn;
+            order[1] = left();
+            order[2]= right();
         }
     }
+	
+	/** Return the player to the left of (next in the order) of the active. */
+	private int left() {return (turn + 1) % 3;}
+	
+	/** Return the player to the right of (before in the order) of the active. */
+	private int right() {return (turn + 2) % 3;}
 
     /** Generate the children of a node on the tree. */
     private void expand()
@@ -191,26 +246,29 @@ class GameState
 
             for(Suit s : Suit.values())
             {
-				// If the agent is allowed to play from this suit.
-				if(legal(pos, s))
-				{
-					for(int i = Game.suitBegins(s); i <= Game.suitEnds(s); i++)
-					{
-						// If the agent has this card.
-						if(beliefs[pos].here(Game.intToCard(i)))
-						{
-							// Simulate a legal move.
-							GameState child = new GameState(this, false);
-							child.advance(Game.intToCard(i));
-							
-							// Simulate predicted opponent moves.
-							while(child.turn != pos)
-								child.advance(child.greedyEval());
-							
-							children.add(child);
-						}
-					}
-				}
+                // If the agent is allowed to play from this suit.
+                if(legal(pos, s))
+                {
+                    for(int i = Game.suitBegins(s); i <= Game.suitEnds(s); i++)
+                    {
+                        // If the agent otherHas this card.
+                        if(beliefs[pos].otherHas(Game.intToCard(i), pos))
+                        {
+                            // Simulate a legal move.
+                            GameState child = new GameState(this, false);
+                            child.advance(Game.intToCard(i));
+
+                            // Simulate predicted opponent moves.
+                            while(child.turn != pos)
+                            {
+                                Card toPlay = child.greedyEval();
+                                child.advance(toPlay);
+                            }
+
+                            children.add(child);
+                        }
+                    }
+                }
             }
         }
     }
@@ -267,6 +325,6 @@ class GameState
 	 */
 	private boolean legal(int p, Suit s)
 	{
-		return p == order[0] || s == table[0].suit || !beliefs[p].here(table[0].suit);
+		return p == order[0] || s == table[order[0]].suit || !beliefs[p].otherHas(table[order[0]].suit, pos);
 	}
  }

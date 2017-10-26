@@ -1,8 +1,6 @@
 package mossai;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * Collection of utility data and methods relating to the structure and rules of
@@ -33,20 +31,19 @@ class Game
     {
         SUIT_MAP = new HashMap(4);
         SUIT_MAP.put(Suit.HEARTS, 0);
-        SUIT_MAP.put(Suit.CLUBS, SUIT_SIZE);
-        SUIT_MAP.put(Suit.DIAMONDS, SUIT_SIZE*2);
-        SUIT_MAP.put(Suit.SPADES, SUIT_SIZE*3);
+        SUIT_MAP.put(Suit.CLUBS, 1);
+        SUIT_MAP.put(Suit.DIAMONDS, 2);
+        SUIT_MAP.put(Suit.SPADES, 3);
         
         CARD_MAP = new HashMap(DECK_SIZE);
         CARD_ARRAY = new Card[DECK_SIZE];
         
         for(Card c : Card.values())
         {
-            int value = SUIT_MAP.get(c.suit) + c.rank-2;
+            int value = SUIT_SIZE * SUIT_MAP.get(c.suit) + c.rank - 2;
             CARD_MAP.put(c, value);
             CARD_ARRAY[value] = c;
         }
-        
     }
     
     /** Take a suit, return an index for it. */
