@@ -284,13 +284,13 @@ final class BeliefState
         return b;
     }
     
-    Card lowestRank(int loc)
+    Card lowest(int loc)
     {
-        return minCard(minCard(lowest(Suit.HEARTS, loc), lowest(Suit.DIAMONDS, loc)), lowest(Suit.CLUBS, loc));
+        return minCard(minCard(BeliefState.this.lowest(Suit.HEARTS, loc), BeliefState.this.lowest(Suit.DIAMONDS, loc)), BeliefState.this.lowest(Suit.CLUBS, loc));
     }
-    Card highestRank(int loc)
+    Card highest(int loc)
     {
-        return maxCard(maxCard(highest(Suit.HEARTS, loc), highest(Suit.DIAMONDS, loc)), maxCard(highest(Suit.CLUBS, loc), highest(Suit.SPADES, loc)));
+        return maxCard(maxCard(BeliefState.this.highest(Suit.HEARTS, loc), BeliefState.this.highest(Suit.DIAMONDS, loc)), maxCard(BeliefState.this.highest(Suit.CLUBS, loc), BeliefState.this.highest(Suit.SPADES, loc)));
     }
     
     /**
@@ -329,7 +329,7 @@ final class BeliefState
 	{
 		if(loc == viewer)
 			return cards[viewer][Game.suitToInt(s)] > 0;
-		else if(highest(s, loc) != null)
+		else if(BeliefState.this.highest(s, loc) != null)
 			return true;
 		else
 			return false;

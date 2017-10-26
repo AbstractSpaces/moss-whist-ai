@@ -94,7 +94,7 @@ public class Raptor implements MSWAgent
             if(card == null)
             {
                 // Otherwise get rid of the lowest card (but not spades)
-                card = belief.lowestRank(0);
+                card = belief.lowest(0);
             }
             
             // add that card to discard pile
