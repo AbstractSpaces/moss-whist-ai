@@ -1,3 +1,6 @@
+
+
+
 package mossai;
 
 import java.util.ArrayList;
@@ -124,7 +127,7 @@ class GameState
                         // Get p3s highest card
                         Card p3 = getOpponentsHighestCardSuit(winning.suit, order[2]);
                         // Find out which is higher
-                        Card highestCardPlayed = table[0].rank > p3.rank ? table[0] : p3;
+                        Card highestCardPlayed = table[order[0]].rank > p3.rank ? table[order[0]] : p3;
                         // Play a higher card or the lowest card if can't win
                         return playCardSuit(winning.suit, highestCardPlayed, pos);
                     }
@@ -143,7 +146,7 @@ class GameState
                         {
                             System.out.println("I think p3 doesn't have this suit and he can't trump");
                             // Play a higher card or the lowest card of the suit
-                            return playCardSuit(winning.suit, table[0], pos);
+                            return playCardSuit(winning.suit, table[order[0]], pos);
                         }
                     }
                 }
@@ -198,22 +201,22 @@ class GameState
                 if(beliefs[pos].here(winning.suit))
                 {
                     // If p2 obeyed the suit, select the one with highest rank
-                    if(table[1].suit == winning.suit)
-                        if(table[0].rank > table[1].rank)
-                            winning = table[0];
+                    if(table[order[1]].suit == winning.suit)
+                        if(table[order[0]].rank > table[1].rank)
+                            winning = table[order[0]];
                         else
-                            winning = table[1];
+                            winning = table[order[1]];
                     // If p2 didn't obey the suit
                     else
                         // If player 2 played a trump
-                        if(table[1].suit == Suit.SPADES)
+                        if(table[order[1]].suit == Suit.SPADES)
                             // p2 is trumping p1s card
-                            winning = table[1];
+                            winning = table[order[1]];
                         // Otherwise it played a card outside of the suit that's not a trump
                         else
                             // p2 can't win, highest card is by p1
                             // scenario: trumps played by p2 didn't have any or p2 doesn't have the tick suit and didn't play any trumps
-                            winning = table[0];
+                            winning = table[order[0]];
                     
                     System.out.println("I'm obeying the suit. Highest Card on the table: " + winning.toString());
                     
@@ -246,9 +249,9 @@ class GameState
                         // If we don't have to obey and we can play a spade
                         else
                             // If player 2 played a trump
-                            if(table[1].suit == Suit.SPADES)
+                            if(table[order[1]].suit == Suit.SPADES)
                                 // Play winning trump or the smallest card we have
-                                return playCardTrump(table[1], pos); // want to avoid handS for findLowestCard?
+                                return playCardTrump(table[order[1]], pos); // want to avoid handS for findLowestCard?
                             else
                                 // We don't have to obey and spades were not played
                                 return beliefs[pos].lowest(Suit.SPADES, pos);
@@ -466,6 +469,6 @@ class GameState
 	 */
 	private boolean legal(int p, Suit s)
 	{
-		return p == order[0] || s == table[0].suit || !beliefs[p].here(table[0].suit);
+		return p == order[0] || s == table[order[0]].suit || !beliefs[p].here(table[order[0]].suit);
 	}
  }
