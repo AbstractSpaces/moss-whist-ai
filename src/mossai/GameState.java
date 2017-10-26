@@ -143,7 +143,6 @@ class GameState
             // Evaluation for the third player.
             else
             {
-				
                 // See if the second player beat the lead.
 				challenger = table[right()];
 				
@@ -155,9 +154,7 @@ class GameState
 			if(active.hasHigher(contested))
 			{
 				challenger = active.highest(contested.suit);
-
-				if(challenger != null)
-					return challenger;
+				return challenger;
 			}
         }
 		
