@@ -99,7 +99,7 @@ class GameState
      */
     Card greedyEval()
     {
-		// This is just aid readability.
+		// This is just to aid readability.
 		BeliefState active = beliefs[turn];
 		
 		// The card currently in the running to win.
@@ -123,7 +123,7 @@ class GameState
         }
         else
         {
-            contested = table[right()];
+            contested = table[order[0]];
             
             // Evaluation for the second player.
             if(turn == order[1])
