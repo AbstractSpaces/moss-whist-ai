@@ -119,6 +119,8 @@ public class Raptor implements MSWAgent
         // Verify that state is working correctly.
 		if(state.active() != players.get(winner))
 			System.out.println("State judged incorrect winner.");
+        else
+            System.out.println("State turn correctly set.");
     }
 
     @Override
