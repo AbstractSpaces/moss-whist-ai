@@ -113,7 +113,7 @@ public class Raptor implements MSWAgent
         else if(winner.compareTo(left) == 0)
             if(state.active() == (state.getPos()+1)%3) System.out.println("Left won and state judged correct.");
             else System.out.println("Left won and state judged wrong.");
-        else if(winner.compareTo(ME) == 0)
+        else if(winner.compareTo(right) == 0)
             if(state.active() == (state.getPos()+2)%3) System.out.println("Right won and state judged correct.");
             else System.out.println("Right won and state judged wrong.");
         else System.out.println("Something really wrong happened.");
