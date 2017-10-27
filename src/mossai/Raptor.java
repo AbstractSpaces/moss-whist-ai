@@ -22,9 +22,6 @@ public class Raptor implements MSWAgent
     /** The probability threshold above which to treat as certain that an opponent possesses a card. */
     static final double POSITIVE;
     
-    /** The probability threshold below which to treat as certain that an opponent does not possess a card. */
-    static final double NEGATIVE;
-    
     static
     {
         BIAS = Math.sqrt(2.0);
@@ -32,7 +29,6 @@ public class Raptor implements MSWAgent
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
         POSITIVE = 0.75;
-        NEGATIVE = 0.01;
     }
     
     /** Names of players, left to right from the agent. */
@@ -126,12 +122,13 @@ public class Raptor implements MSWAgent
     @Override
     public void seeScore(Map<String, Integer> scoreboard)
     {
+        System.out.println("State scores:");
         // Verify that state is working properly.
         int[] scores = state.getScores();
         
         for(String n : names)
-			if(scores[players.get(n)] != scoreboard.get(n))
-				System.out.println("Score incorrect for " + n + ".");
+			System.out.println(n + ": " + scores[players.get(n)]);
+        System.out.println();
     }
 
     @Override

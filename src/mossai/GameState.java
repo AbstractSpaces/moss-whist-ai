@@ -234,8 +234,8 @@ class GameState
             }
             
             Arrays.fill(table, null);
-            scores[win]++;
             turn = win;
+            scores[turn]++;
             order[0] = turn;
             order[1] = left();
             order[2]= right();
