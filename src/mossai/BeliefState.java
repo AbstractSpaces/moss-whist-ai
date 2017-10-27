@@ -249,7 +249,7 @@ final class BeliefState
     {
         if(maybeHas(s, loc))
             for(int c = Game.suitBegins(s); c <= Game.suitEnds(s); c++)
-                if(chance(Game.intToCard(c), loc) < Raptor.POSITIVE)
+                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
                     return Game.intToCard(c);
 		
         return null;
