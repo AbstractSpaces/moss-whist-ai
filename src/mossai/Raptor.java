@@ -22,6 +22,8 @@ public class Raptor implements MSWAgent
     /** The probability threshold above which to treat as certain that an opponent possesses a card. */
     static final double POSITIVE;
     
+    private static String me;;
+    
     static
     {
         BIAS = Math.sqrt(2.0);
@@ -29,10 +31,11 @@ public class Raptor implements MSWAgent
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
         POSITIVE = 0.75;
+        me = "Clever Girl";
     }
     
-    /** Names of players, left to right from the agent. */
-    private final String[] names;
+    private String left;
+    private String right;
     
     /** Map of player names to their positions. */
     private final HashMap<String, Integer> players;
@@ -41,7 +44,6 @@ public class Raptor implements MSWAgent
     
     public Raptor()
     {
-        names = new String[] {"Clever Girl", "", ""};
         players = new HashMap(3);
         state = null;
     }
@@ -49,19 +51,18 @@ public class Raptor implements MSWAgent
     @Override
     public void setup(String agentLeft, String agentRight)
     {
-        names[1] = agentLeft;
-        names[2] = agentRight;
+        left = agentLeft;
+        right = agentRight;
     }
 
     @Override
     public void seeHand(List<Card> deal, int order)
     {
         state = new GameState(order, deal);
-		
-        for(int i = 0; i < 3; i++)
-			players.put(names[i], (order+i)%3);
-		
-		System.out.println("Agent: " + order);
+        
+        players.put(me, order);
+        players.put(left, (order+1)%3);
+        players.put(right, (order+2)%3);
     }
 
     @Override
@@ -122,15 +123,17 @@ public class Raptor implements MSWAgent
     @Override
     public void seeScore(Map<String, Integer> scoreboard)
     {
+        System.out.println();
         System.out.println("State scores:");
         // Verify that state is working properly.
         int[] scores = state.getScores();
         
-        for(String n : names)
-			System.out.println(n + ": " + scores[players.get(n)]);
+        System.out.println("Me: " + scores[players.get(me)]);
+        System.out.println("Left: " + scores[players.get(left)]);
+        System.out.println("Right: " + scores[players.get(right)]);
         System.out.println();
     }
 
     @Override
-    public String sayName() { return names[0]; }
+    public String sayName() { return me; }
 }
