@@ -106,8 +106,7 @@ public class Raptor implements MSWAgent
         
         // Temp version.
         best = state.greedyEval();
-		
-        state.advance(best);
+        
         return best;
     }
 

@@ -160,7 +160,7 @@ class GameState
 
             // Whether playing second or third, attempt to beat the odds-on favourite.
             // See if the active has to follow suit but can beat the contested.
-            if(active.has(table[order[0]]) && contested.suit == table[order[0]].suit && active.hasHigher(contested))
+            if(active.has(table[order[0]].suit) && contested.suit == table[order[0]].suit && active.hasHigher(contested))
                 c0 = active.beat(contested);
             // See if winning by trump is possible.
             else if(active.has(Game.TRUMP))
