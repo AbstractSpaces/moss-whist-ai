@@ -35,9 +35,9 @@ class GameState
     private ArrayList<GameState> children;
     
     /** Construct a blank state for a new game. */
-    GameState(int leader, List<Card> deal)
+    GameState(int p, List<Card> deal)
     {
-        pos = leader;
+        pos = p;
         order = new int[] {0, 1, 2};
         turn = 0;
         table = new Card[3];
@@ -119,7 +119,7 @@ class GameState
 				c0 = active.highest(Game.suitIntToSuit(s));
 				
                 if(c0 != null && !active.otherHasHigher(c0, left()) && !active.otherHasHigher(c0, right()))
-					return c0;
+					break;
 			}
         }
 		else
@@ -321,6 +321,7 @@ class GameState
             }
 
             children.get(best).expand();
+            playthroughs++;
 
             if(children.get(best).playOut())
             {
