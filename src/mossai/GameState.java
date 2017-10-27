@@ -242,6 +242,7 @@ class GameState
             order[0] = turn;
             order[1] = left();
             order[2]= right();
+            System.out.println("Winner and next turn goes to: " + turn);
         }
     }
 	
