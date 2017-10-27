@@ -233,7 +233,7 @@ class GameState
             {
                 int p = order[i];
                 if(challenge(table[win], table[p]))
-                        win = p;
+                    win = p;
             }
             
             Arrays.fill(table, null);
@@ -241,8 +241,7 @@ class GameState
             scores[turn]++;
             order[0] = turn;
             order[1] = left();
-            order[2]= right();
-            System.out.println("Winner and next turn goes to: " + turn);
+            order[2] = right();
         }
     }
 	

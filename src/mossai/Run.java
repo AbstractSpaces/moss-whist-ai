@@ -17,13 +17,13 @@ public class Run
     {
         String friendlyAI = "Clever Girl";
         int friendlyWins = 0;
-        int games = 20;
+        int games = 2;
         for(int i = 0; i < games; i ++)
         {
             MossSideWhist game = new MossSideWhist(new RandomAgent(), new Raptor(), new RandomAgent());
             game.playGame(1, System.out);
             
-            friendlyWins += areYouWinning(friendlyAI, game.scoreboard) ? 1 : -1;
+            friendlyWins += areYouWinning(friendlyAI, game.scoreboard) ? 1 : 0;
         }
         
         System.out.println(friendlyAI + " won " + friendlyWins + " out of " + games + " games.");

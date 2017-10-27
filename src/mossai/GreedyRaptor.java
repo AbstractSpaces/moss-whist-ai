@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 /** An agent (hopefully) capable of intelligently playing Moss Side Whist. */
-public class Raptor implements MSWAgent
+public class GreedyRaptor implements MSWAgent
 {
     /** Bias constant for Monte Carlo play outs. */
     static final double BIAS;
@@ -39,7 +39,7 @@ public class Raptor implements MSWAgent
     
     private GameState state;
     
-    public Raptor() {}
+    public GreedyRaptor() {}
     
     @Override
     public void setup(String agentLeft, String agentRight)
@@ -74,29 +74,7 @@ public class Raptor implements MSWAgent
     public Card playCard()
     {
 	
-        Card best = null;
-        long start = System.nanoTime();
-     
-        // A record of how many times each card was recommended by a Monte Carlo search.
-        HashMap<Card, Integer> results = new HashMap();
-        
-        while(System.nanoTime() - start < SEARCH_TIME * 1000000)
-        {
-            Card c = state.monteCarlo();
-            
-            if(results.get(c) == null)
-                results.put(c, 1);
-            else
-                results.put(c, results.get(c) + 1);
-        }
-        
-        for(Card c : results.keySet())
-            if(best == null || results.get(c) > results.get(best))
-                best = c;
-        
-        
-        // Temp version.
-        //best = state.greedyEval();
+        Card best = state.greedyEval();
         
         return best;
     }
