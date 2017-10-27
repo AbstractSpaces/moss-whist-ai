@@ -99,89 +99,89 @@ class GameState
      */
     Card greedyEval()
     {
-		// This is just to aid readability.
-		BeliefState active = beliefs[turn];
+        // This is just to aid readability.
+        BeliefState active = beliefs[turn];
 
-		// The cards played or expected to be played by each player.
-		Card c0 = null;
-		Card cLeft;
-		Card cRight;
+        // The cards played or expected to be played by each player.
+        Card c0 = null;
+        Card cLeft;
+        Card cRight;
 		
         // Evaluation for the first player.
         if(turn == order[0])
         {
-			// Compare the available cards of each suit, choose the first one
-			// with a good chance at winning.
-			// Starting the loop with trumps encourages other players to use
-			// their trumps early, lessening their chances to trump us later on.
+            // Compare the available cards of each suit, choose the first one
+            // with a good chance at winning.
+            // Starting the loop with trumps encourages other players to use
+            // their trumps early, lessening their chances to trump us later on.
             for(int s = Game.NUM_SUITS-1; s >= 0; s--)
-			{
-				c0 = active.highest(Game.suitIntToSuit(s));
+            {
+                c0 = active.highest(Game.suitIntToSuit(s));
 				
                 if(c0 != null && !active.otherHasHigher(c0, left()) && !active.otherHasHigher(c0, right()))
-					break;
-			}
+                    break;
+            }
         }
-		else
-		{
-			// The card in the running to win.
-			Card contested;
-			
-			// Evaluation for the second player.
-			if(turn == order[1])
-			{
-				cRight = table[order[0]];
-				cLeft = null;
+        else
+        {
+            // The card in the running to win.
+            Card contested;
 
-				// If the third player is expected to follow suit.
-				if(active.otherHas(cRight.suit, left()))
-					cLeft = active.highestInOther(cRight.suit, left());
-				// If the third player is expected to trump.
-				else if(cRight.suit != Game.TRUMP && active.otherHas(Game.TRUMP, left()))
-					cLeft = active.highestInOther(Game.TRUMP, left());
-				
-				if(cLeft != null && challenge(cRight, cLeft))
-					contested = cLeft;
-				else
-					contested = cRight;
-			}
-			// Evaluation for the third player.
-			else
-			{
-				// See if the second player beat the lead.
-				cLeft = table[order[0]];
-				cRight = table[order[1]];
+            // Evaluation for the second player.
+            if(turn == order[1])
+            {
+                cRight = table[order[0]];
+                cLeft = null;
 
-				if(challenge(cLeft, cRight))
-					contested = cRight;
-				else
-					contested = cLeft;
-			}
+                // If the third player is expected to follow suit.
+                if(active.otherHas(cRight.suit, left()))
+                    cLeft = active.highestInOther(cRight.suit, left());
+                // If the third player is expected to trump.
+                else if(cRight.suit != Game.TRUMP && active.otherHas(Game.TRUMP, left()))
+                    cLeft = active.highestInOther(Game.TRUMP, left());
 
-			// Whether playing second or third, attempt to beat the odds-on favourite.
-			// See if the active has to follow suit but can beat the contested.
-			if(active.has(table[0]) && contested.suit == table[0].suit && active.hasHigher(contested))
-				c0 = active.beat(contested);
-			// See if winning by trump is possible.
-			else if(active.has(Game.TRUMP))
-			{
-				if(contested.suit == Game.TRUMP)
-					c0 = active.beat(contested);
-				else
-					// Any trump will win the trick.
-					c0 = active.lowest(Game.TRUMP);
-			}
-		}
+                if(cLeft != null && challenge(cRight, cLeft))
+                    contested = cLeft;
+                else
+                    contested = cRight;
+            }
+            // Evaluation for the third player.
+            else
+            {
+                // See if the second player beat the lead.
+                cLeft = table[order[0]];
+                cRight = table[order[1]];
+
+                if(challenge(cLeft, cRight))
+                    contested = cRight;
+                else
+                    contested = cLeft;
+            }
+
+            // Whether playing second or third, attempt to beat the odds-on favourite.
+            // See if the active has to follow suit but can beat the contested.
+            if(active.has(table[order[0]]) && contested.suit == table[order[0]].suit && active.hasHigher(contested))
+                c0 = active.beat(contested);
+            // See if winning by trump is possible.
+            else if(active.has(Game.TRUMP))
+            {
+                if(contested.suit == Game.TRUMP)
+                    c0 = active.beat(contested);
+                else
+                    // Any trump will win the trick.
+                    c0 = active.lowest(Game.TRUMP);
+            }
+        }
 		
-		// Play a (hopefully) winning card.
-		if(c0 != null)
-			return c0;
-		// Throw away a card without having to follow suit.
-		else if(table[0] == null || !active.has(table[0].suit))
-			return active.lowest(true);
-		// Throw away a card while being obliged to follow suit.
-		else
-			return active.lowest(table[0].suit);
+        // Play a (hopefully) winning card.
+        if(c0 != null)
+            return c0;
+        // Throw away a card without having to follow suit.
+        else if(table[order[0]] == null || !active.has(table[order[0]].suit))
+            return active.lowest(true);
+        // Throw away a card while being obliged to follow suit.
+        else
+            return active.lowest(table[order[0]].suit);
     }
     
     /** Use Monte Carlo tree search to evaluate the best move from this state. */
@@ -216,7 +216,7 @@ class GameState
     void advance(Card played)
     {
         for(BeliefState b : beliefs)
-			b.cardPlayed(played, turn, table[order[0]]);
+            b.cardPlayed(played, turn, table[order[0]]);
 		
         table[turn] = played;
         turn = left();
@@ -229,9 +229,8 @@ class GameState
             for(int i = 1; i < 3; i++)
             {
                 int p = order[i];
-                
-				if(challenge(table[win], table[p]))
-					win = p;
+                if(challenge(table[win], table[p]))
+                        win = p;
             }
             
             Arrays.fill(table, null);
