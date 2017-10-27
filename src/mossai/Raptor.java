@@ -29,9 +29,7 @@ public class Raptor implements MSWAgent
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
 
-        POSITIVE = 0.5;
-
-
+        POSITIVE = 0.65;
     }
     
     /** Names of players, left to right from the agent. */

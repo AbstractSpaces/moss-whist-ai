@@ -20,7 +20,7 @@ class GameState
     public final Card[] table;
     
     /** Running tally of the scores. */
-    private final int[] scores;
+    public final int[] scores;
     
     /** The beliefs held by the agent and the two simulated opponents. */
     public final BeliefState[] beliefs;
