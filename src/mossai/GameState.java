@@ -89,6 +89,9 @@ class GameState
 	
 	/** Return the player whose turn this state represents. */
 	int active() { return turn; }
+    
+    /** Return the agent's order position. */
+    int getPos() { return pos; }
 	
 	/** Return the running score tally. */
 	int[] getScores() { return Arrays.copyOf(scores, 3); }

@@ -22,7 +22,7 @@ public class Raptor implements MSWAgent
     /** The probability threshold above which to treat as certain that an opponent possesses a card. */
     static final double POSITIVE;
     
-    private static String me;;
+    private static String ME;
     
     static
     {
@@ -30,23 +30,16 @@ public class Raptor implements MSWAgent
         DRAW_WINS = false;
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
-
         POSITIVE = 0.65;
+        ME = "Clever Girl";
     }
     
     private String left;
     private String right;
     
-    /** Map of player names to their positions. */
-    private final HashMap<String, Integer> players;
-    
     private GameState state;
     
-    public Raptor()
-    {
-        players = new HashMap(3);
-        state = null;
-    }
+    public Raptor() {}
     
     @Override
     public void setup(String agentLeft, String agentRight)
@@ -59,23 +52,22 @@ public class Raptor implements MSWAgent
     public void seeHand(List<Card> deal, int order)
     {
         state = new GameState(order, deal);
-		
-        for(int i = 0; i < 3; i++)
-            players.put(names[i], (order+i)%3);
-		
-		System.out.println("Agent: " + order);
     }
 
     @Override
     public Card[] discard()
     {
-        Card[] chosen = new Card[4];
-	
-        for(int i = 0; i < 4; i++)
+        if(state.getPos() == 0)
         {
-            chosen[i] = state.discardLow();
+            Card[] chosen = new Card[4];
+
+            for(int i = 0; i < 4; i++)
+            {
+                chosen[i] = state.discardLow();
+            }
+            return chosen;
         }
-        return chosen;
+        else return new Card[4];
     }
 	
     @Override
@@ -115,33 +107,27 @@ public class Raptor implements MSWAgent
     @Override
     public void seeResult(String winner)
     {
-        // Verify that state is working correctly.
-        if(state.active() != players.get(winner))
-            System.out.println("State judged incorrect winner.");
-        else
-            System.out.println("State turn correctly set.");
-
+        if(winner.compareTo(ME) == 0)
+            if(state.active() == state.getPos()) System.out.println("I won and state judged correct.");
+            else System.out.println("I won and state judged wrong.");
+        else if(winner.compareTo(left) == 0)
+            if(state.active() == (state.getPos()+1)%3) System.out.println("Left won and state judged correct.");
+            else System.out.println("Left won and state judged wrong.");
+        else if(winner.compareTo(ME) == 0)
+            if(state.active() == (state.getPos()+2)%3) System.out.println("Right won and state judged correct.");
+            else System.out.println("Right won and state judged wrong.");
+        else System.out.println("Something really wrong happened.");
     }
 
     @Override
     public void seeScore(Map<String, Integer> scoreboard)
     {
-        System.out.println();
-        System.out.println("State scores:");
-        // Verify that state is working properly.
         int[] scores = state.getScores();
-        
-        for(String n : names)
-        {
-            if(scores[players.get(n)] != scoreboard.get(n))
-                System.out.println("Score incorrect for " + n + ".");
-
-            System.out.println(n + ": " + scores[players.get(n)]);
-        }
-        System.out.println();
-
+        System.out.println("My score: " + scores[state.getPos()]);
+        System.out.println("Left score: " + scores[(state.getPos()+1)%3]);
+        System.out.println("Right score: " + scores[(state.getPos()+2)%3]);
     }
 
     @Override
-    public String sayName() { return me; }
+    public String sayName() { return ME; }
 }
