@@ -22,32 +22,45 @@ class Game
     // Data relating to the deck of cards.
     static final int DECK_SIZE = 52;
     static final int SUIT_SIZE = 13;
+	static final int NUM_SUITS = 4;
+	static final int TRUMP_INT;
     
     private static final HashMap<Suit, Integer> SUIT_MAP;
     private static final HashMap<Card, Integer> CARD_MAP;
     private static final Card[] CARD_ARRAY;
+	private static final Suit[] SUIT_ARRAY;
     
     static
     {
-        SUIT_MAP = new HashMap(4);
-        SUIT_MAP.put(Suit.HEARTS, 0);
-        SUIT_MAP.put(Suit.CLUBS, 1);
-        SUIT_MAP.put(Suit.DIAMONDS, 2);
-        SUIT_MAP.put(Suit.SPADES, 3);
+		SUIT_MAP = new HashMap(4);
+		SUIT_ARRAY = new Suit[4];
+		int i = 0;
+		
+		for(Suit s : Suit.values())
+		{
+			SUIT_MAP.put(s, i);
+			SUIT_ARRAY[i] = s;
+			i++;
+		}
+		
+		TRUMP_INT = SUIT_MAP.get(TRUMP);
         
         CARD_MAP = new HashMap(DECK_SIZE);
         CARD_ARRAY = new Card[DECK_SIZE];
         
         for(Card c : Card.values())
         {
-            int value = SUIT_SIZE * SUIT_MAP.get(c.suit) + c.rank - 2;
-            CARD_MAP.put(c, value);
-            CARD_ARRAY[value] = c;
+            i = SUIT_SIZE * SUIT_MAP.get(c.suit) + c.rank - 2;
+            CARD_MAP.put(c, i);
+            CARD_ARRAY[i] = c;
         }
     }
     
     /** Take a suit, return an index for it. */
     static int suitToInt(Suit s) { return SUIT_MAP.get(s); }
+	
+	/** Take a suit index, return it corresponding suit. */
+	static Suit suitIntToSuit(int s) { return SUIT_ARRAY[s]; }
     
     /** Take a suit, return the index of its lowest card. */
     static int suitBegins(Suit s) { return SUIT_MAP.get(s) * SUIT_SIZE; }
@@ -65,7 +78,7 @@ class Game
     static int cardToRank(Card c) { return c.rank - 2; }
     
     /** Take a card index, return its suit's index. */
-    static int intToSuit(int c) { return c / SUIT_SIZE; }
+    static int cardIntToSuit(int c) { return c / SUIT_SIZE; }
     
     /** Take a card, return its index. */
     static Card intToCard(int c) { return CARD_ARRAY[c]; }

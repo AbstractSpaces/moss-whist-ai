@@ -65,65 +65,24 @@ public class Raptor implements MSWAgent
         for(int i = 0; i < 3; i++)
 			players.put(names[i], (order+i)%3);
 		
-		System.out.println("Agent is player: " + order);
+		System.out.println("Agent: " + order);
     }
 
     @Override
     public Card[] discard()
     {
-        // TODO: Discard strategy.
-        // todo idea: discard and playout to see if a good discard
-        
-        BeliefState belief = state.beliefs[state.pos];
-        
-        int discarded = 0;
-        Card card;
-        Card[] discardPile = new Card[4];
-        
-        while(discarded < 4)
-        {
-            // if state.beliefs.
-            // If any of the suits are below 3 cards, get rid of them
-            card = checkDiscardSuit(Suit.HEARTS, belief);
-            if(card == null)
-            {
-                card = checkDiscardSuit(Suit.DIAMONDS, belief);
-                if(card == null)
-                {
-                    card = checkDiscardSuit(Suit.CLUBS, belief);        
-                }
-            }
-            if(card == null)
-            {
-                // Otherwise get rid of the lowest card (but not spades)
-                card = belief.lowest(0);
-            }
-            
-            // add that card to discard pile
-            discardPile[discarded] = card;
-            belief.cardPlayed(card, 0, null);
-            discarded++;
-        }
-        
-        return discardPile;
+		Card[] chosen = new Card[4];
+		
+        for(int i = 0; i < 4; i++)
+			chosen[i] = state.discardLow();
+		
+		return chosen;
     }
-    private Card checkDiscardSuit(Suit suit, BeliefState belief)
-    {
-        Card card = null;
-        
-        //if(belief.suitCount(Suit.HEARTS) < 2)
-        //{
-            // if card is lower than rank 14
-                // card = that suit card
-        //}
-        return card;
-    }
-
-
+	
     @Override
     public Card playCard()
     {
-		System.out.println("Starting playCard algorithm.");
+	
         Card best = null;
         long start = System.nanoTime();
 /*       
@@ -140,29 +99,27 @@ public class Raptor implements MSWAgent
                 results.put(c, results.get(c) + 1);
         }
         
-        for(Card c : results.keySet()) if(best == null || results.get(c) > results.get(best)) best = c;
+        for(Card c : results.keySet())
+			if(best == null || results.get(c) > results.get(best))
+				best = c;
 */        
+        
         // Temp version.
         best = state.greedyEval();
-        
+		
         state.advance(best);
         return best;
     }
 
     @Override
-    public void seeCard(Card card, String agent)
-	{
-		System.out.println("Opponent turn: " + players.get(agent));
-		System.out.println("State turn set to: " + state.currentTurn());
-		state.advance(card);
-		System.out.println("Next turn: " + (players.get(agent)+1)%3);
-		System.out.println("State advanced to: " + state.currentTurn());
-	}
+    public void seeCard(Card card, String agent) { state.advance(card); }
 
     @Override
     public void seeResult(String winner)
     {
-        System.out.println("seeR->winner: " + players.get(winner));
+        // Verify that state is working correctly.
+		if(state.active() != players.get(winner))
+			System.out.println("State judged incorrect winner.");
     }
 
     @Override

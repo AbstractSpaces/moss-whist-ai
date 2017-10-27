@@ -84,10 +84,10 @@ final class BeliefState
             else if(maybeHas(Game.intToCard(c), viewer))
             {
                 locs[c] -= 1 << viewer;
-                cards[viewer][Game.intToSuit(c)] -= 1 << Game.intToRank(c);
+                cards[viewer][Game.cardIntToSuit(c)] -= 1 << Game.intToRank(c);
             }
             
-            // The leader has no uncertainty over discarded cards.
+            // The leader otherHas no uncertainty over discarded cards.
             if(viewer == Game.LEADER)
             {
                 if(cardState[c] == Game.OUT)
@@ -96,7 +96,7 @@ final class BeliefState
                 else if(maybeHas(Game.intToCard(c), Game.OUT))
                 {
                     locs[c] -= 1 << Game.OUT;
-                    cards[Game.OUT][Game.intToSuit(c)] -= 1 << Game.intToRank(c);
+                    cards[Game.OUT][Game.cardIntToSuit(c)] -= 1 << Game.intToRank(c);
                 }
             }
             
@@ -115,38 +115,103 @@ final class BeliefState
         for(int i = 0; i < cards.length; i++)
 			cards[i] = Arrays.copyOf(old.cards[i], cards[0].length);
     }
-    
-    /** Return the probability of a card being in a location. */
-    double chance(Card c, int loc)
+	
+	/** Returns true if the viewer has a given card. */
+	boolean has(Card c) { return locs[Game.cardToInt(c)] == (1 << viewer); }
+	
+	/** Returns true if the viewer has at least one card of a certain suit. */
+	boolean has(Suit s) { return cards[viewer][Game.suitToInt(s)] > 0; }
+	
+	/** Returns true if a card is considered to be in a certain location. */
+    boolean otherHas(Card c, int loc) { return maybeHas(c, loc) && chance(c, loc) > Raptor.POSITIVE; }
+	
+    /**
+	 * Returns true if a location is considered to contain at least one card of
+	 * a certain suit.
+	 */
+    boolean otherHas(Suit s, int loc) { return BeliefState.this.highestInOther(s, loc) != null; }
+	
+	/** Returns true if the viewer has a higher ranked card in the same suit. */
+	boolean hasHigher(Card c) { return cards[viewer][Game.cardToSuit(c)] > (1 << Game.cardToRank(c)); }
+	
+	/**
+	 * Returns a higher ranked card that the viewer has, in the same suit
+	 * as the argument, or null.
+	 */
+	Card beat(Card c)
+	{
+		for(int i = Game.cardToInt(c); i <= Game.suitEnds(c.suit); i++)
+			if(has(Game.intToCard(i)))
+				return Game.intToCard(i);
+		
+		return null;
+	}
+	
+    /**
+     * Returns true if a location is considered to have a higher ranked card in
+	 * the same suit.
+     */
+    boolean otherHasHigher(Card c, int loc)
     {
-        if(!tbc(c))
-        {
-            if(certain(c, loc))
-                return 1.0;
-            else
-                return 0.0;
-        }
-        else
-        {
-            double numerator = 0.0;
-            double denominator = 0.0;
-            
-            // Scan through the locations.
-            for(int l = 0; l < 4; l++)
-            {
-                if(l == loc)
-                    numerator = (double)cards[l][UNKNOWN];
-                // We only want to consider the unknown cards in a location
-                // if the card in question might be located there.
-                // If l is a valid location for the card.
-                if(maybeHas(c, l))
-                    denominator += (double)cards[l][UNKNOWN];
-            }
-            
-            return numerator / denominator;
-        }
+		if(cards[loc][Game.cardToSuit(c)] > (1 << Game.cardToRank(c)))
+            for(int i = Game.cardToInt(c); i <= Game.suitEnds(c.suit); i++)
+                if(chance(c, loc) > Raptor.POSITIVE)
+                    return true;
+		
+        return false;
+    }
+	
+	/** Return the highestInOther card of a suit held by the viewer, or null. */
+	Card highest(Suit s)
+	{
+		for(int c = Game.suitEnds(s); c >= Game.suitBegins(s); c--)
+			if(has(Game.intToCard(c)))
+				return Game.intToCard(c);
+		
+		return null;
+	}
+	
+	/** Return the highest likely card of a suit in a location. */
+    Card highestInOther(Suit s, int loc)
+    {
+        if(maybeHas(s, loc))
+            for(int c = Game.suitEnds(s); c >= Game.suitBegins(s); c--)
+                if(chance(Game.intToCard(c), loc) > Raptor.POSITIVE)
+                    return Game.intToCard(c);
+		
+        return null;
     }
     
+    /** Return the lowest card of a suit that the viewer holds, or null. */
+    Card lowest(Suit s)
+    {
+		for(int c = Game.suitBegins(s); c <= Game.suitEnds(s); c++)
+			if(has(Game.intToCard(c)))
+				return Game.intToCard(c);
+		
+        return null;
+    }
+    
+	/** Returns the lowest ranked card held by the viewer, optionally excluding trumps. */
+    Card lowest(boolean noTrump)
+    {
+        Card low = null;
+		
+		for(Suit s : Suit.values())
+		{
+			if(s == Game.TRUMP && noTrump) continue;
+			else
+			{
+				Card contest = lowest(s);
+
+				if(contest != null && (low == null || contest.rank < low.rank))
+					low = contest;
+			}
+		}
+		
+		return low;
+    }
+	
     /** Update the belief when a card is played. */
     void cardPlayed(Card c, int loc, Card lead)
     {   
@@ -155,7 +220,7 @@ final class BeliefState
         
         if(loc == viewer)
             locs[Game.cardToInt(c)] = 1 << Game.OUT;
-        // If the viewer has received new knowledge.
+        // If the viewer otherHas received new knowledge.
         else
         {
             // If the card wasn't known to be in that player's hand, there is
@@ -233,122 +298,6 @@ final class BeliefState
         return sample;
     }
 	
-	/** Return the highest card of a suit likely to be located somewhere. */
-    Card highest(Suit s, int loc)
-    {
-        if(maybeHas(s, loc))
-            for(int c = Game.suitEnds(s); c >= Game.suitBegins(s); c--)
-                if(has(Game.intToCard(c), loc))
-                    return Game.intToCard(c);
-		
-        return null;
-    }
-    
-    /** Return the lowest card of a suit likely to be located somewhere. */
-    Card lowest(Suit s, int loc)
-    {
-        if(maybeHas(s, loc))
-            for(int c = Game.suitBegins(s); c <= Game.suitEnds(s); c++)
-                if(has(Game.intToCard(c), loc))
-                    return Game.intToCard(c);
-		
-        return null;
-    }
-	
-	/**
-	 * Return the lowest someone likely has that is higher and in the same
-	 * suit as another.
-	 */
-	Card higherThan(Card c, int loc)
-	{
-		if(maybeHas(c.suit, loc))
-			for(int i = Game.cardToInt(c) + 1; i <= Game.suitEnds(c.suit); i++)
-				if(has(Game.intToCard(i), loc))
-					return Game.intToCard(i);
-		
-		return null;
-	}
-    
-    Card maxCard(Card a, Card b)
-    {
-        if(a != null)
-        {
-            if(b != null)
-                if(a.rank > b.rank)
-                    return a;
-                else
-                    return b;
-            return a;
-        }
-        return b;
-    }
-	
-    Card minCard(Card a, Card b)
-    {
-        if(a != null)
-        {
-            if(b != null)
-                if(a.rank > b.rank)
-                    return b;
-                else
-                    return a;
-			
-            return a;
-        }
-        return b;
-    }
-    
-    Card lowest(int loc)
-    {
-        return minCard(minCard(BeliefState.this.lowest(Suit.HEARTS, loc), BeliefState.this.lowest(Suit.DIAMONDS, loc)), BeliefState.this.lowest(Suit.CLUBS, loc));
-    }
-    Card highest(int loc)
-    {
-        return maxCard(maxCard(BeliefState.this.highest(Suit.HEARTS, loc), BeliefState.this.highest(Suit.DIAMONDS, loc)), maxCard(BeliefState.this.highest(Suit.CLUBS, loc), BeliefState.this.highest(Suit.SPADES, loc)));
-    }
-    
-    /**
-     * Return true if a location is considered to have a higher ranked card in
-	 * the same suit.
-     */
-    boolean hasHigher(Card c, int loc)
-    {
-		if(loc == viewer)
-			return cards[viewer][Game.cardToSuit(c)] > (1 << Game.cardToRank(c));
-        // A quick check to see if there is even a chance of returning true.
-		else if(cards[loc][Game.cardToSuit(c)] > (1 << Game.cardToRank(c)))
-            for(int i = Game.cardToInt(c); i <= Game.suitEnds(c.suit); i++)
-                if(chance(c, loc) > Raptor.POSITIVE)
-                    return true;
-		
-        return false;
-    }
-	
-    /** Returns true if a card is considered to be in a certain location. */
-    boolean has(Card c, int loc)
-	{
-		if(loc == viewer)
-			return locs[Game.cardToInt(c)] == (1 << viewer);
-		else if(maybeHas(c, loc) && chance(c, loc) > Raptor.POSITIVE)
-			return true;
-		else
-			return false;
-	}
-	
-    /**
-	 * Returns true if a location is considered to contain at least one card of
-	 * a certain suit.
-	 */
-    boolean has(Suit s, int loc)
-	{
-		if(loc == viewer)
-			return cards[viewer][Game.suitToInt(s)] > 0;
-		else if(BeliefState.this.highest(s, loc) != null)
-			return true;
-		else
-			return false;
-	}
-	
 	/** Returns true if the card might be in the given location. */
     private boolean maybeHas(Card c, int loc) { return (locs[Game.cardToInt(c)] & (1 << loc)) != 0; }
     
@@ -361,6 +310,35 @@ final class BeliefState
 	/** Returns true if a card's location is still in doubt. */
     private boolean tbc(Card c) { return (locs[Game.cardToInt(c)] & (1 << TBC)) != 0; }
     
+	/** Return the probability of a card being in a location. */
+    private double chance(Card c, int loc)
+    {
+        if(!tbc(c))
+            if(certain(c, loc))
+                return 1.0;
+            else
+                return 0.0;
+        else
+        {
+            double numerator = 0.0;
+            double denominator = 0.0;
+            
+            // Scan through the locations.
+            for(int l = 0; l < 4; l++)
+            {
+                if(l == loc)
+                    numerator = (double)cards[l][UNKNOWN];
+                // We only want to consider the unknown cards in a location
+                // if the card in question might be located there.
+                // If l is a valid location for the card.
+                if(maybeHas(c, l))
+                    denominator += (double)cards[l][UNKNOWN];
+            }
+            
+            return numerator / denominator;
+        }
+    }
+	
     /** See if new knowledge allows confirming a card's location. */
     private void confirm(int c)
     {
