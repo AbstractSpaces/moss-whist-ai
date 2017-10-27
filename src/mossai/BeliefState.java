@@ -84,7 +84,7 @@ final class BeliefState
             else if(maybeHas(Game.intToCard(c), viewer))
             {
                 locs[c] -= 1 << viewer;
-                cards[viewer][Game.intToSuit(c)] -= 1 << Game.intToRank(c);
+                cards[viewer][Game.cardIntToSuit(c)] -= 1 << Game.intToRank(c);
             }
             
             // The leader otherHas no uncertainty over discarded cards.
@@ -96,7 +96,7 @@ final class BeliefState
                 else if(maybeHas(Game.intToCard(c), Game.OUT))
                 {
                     locs[c] -= 1 << Game.OUT;
-                    cards[Game.OUT][Game.intToSuit(c)] -= 1 << Game.intToRank(c);
+                    cards[Game.OUT][Game.cardIntToSuit(c)] -= 1 << Game.intToRank(c);
                 }
             }
             

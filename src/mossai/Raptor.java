@@ -65,7 +65,7 @@ public class Raptor implements MSWAgent
         for(int i = 0; i < 3; i++)
 			players.put(names[i], (order+i)%3);
 		
-		System.out.println("Leader: " + order);
+		System.out.println("Agent: " + order);
     }
 
     @Override

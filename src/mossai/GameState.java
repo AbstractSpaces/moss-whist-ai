@@ -101,25 +101,28 @@ class GameState
     {
 		// This is just to aid readability.
 		BeliefState active = beliefs[turn];
-		
 		// The card currently in the running to win.
-		Card contested;
-		
+		Card contested = null;
 		// The card attempting to beat the contested.
-		Card challenger;
+		Card challenger = null;
 		
         // Evaluation for the first player.
         if(turn == order[0])
         {
 			// Compare the available cards of each suit, choose the first one
 			// with a good chance at winning.
-            for(Suit s : Suit.values())
+			// Starting the loop with trumps encourages other players to use
+			// their trumps early, lessening their chances to trump us later on.
+            for(int s = Game.NUM_SUITS-1; s >= 0; s--)
 			{
-				contested = active.highest(s);
+				contested = active.highest(Game.suitIntToSuit(s));
 				
-                if(!active.otherHasHigher(contested, left()) && !active.otherHasHigher(contested, right()))
+                if(contested != null && !active.otherHasHigher(contested, left()) && !active.otherHasHigher(contested, right()))
                     return contested;
 			}
+			
+			if(contested == null)
+				return active.lowest();
         }
         else
         {
@@ -146,15 +149,33 @@ class GameState
                 // See if the second player beat the lead.
 				challenger = table[right()];
 				
-				if((challenger.suit == Game.TRUMP && contested.suit != Game.TRUMP) || challenger.rank > contested.rank)
+				if((challenger.suit == contested.suit && challenger.rank > contested.rank) || (challenger.suit == Game.TRUMP && contested.suit != Game.TRUMP))
 					contested = challenger;
             }
 			
 			// Whether playing second or third, attempt to beat the odds-on favourite.
-			if(active.hasHigher(contested))
+			// See if the active has to follow suit.
+			if(active.has(table[0].suit))
 			{
-				challenger = active.highest(contested.suit);
-				return challenger;
+				// See if the contested is not a trump and is beatable by rank.
+				if(contested.suit == table[0].suit && active.hasHigher(contested))
+					return active.beat(contested);
+				// Otherwise, throw away a low card that follows suit.
+				else
+					return active.lowest(table[0].suit);
+			}
+			else
+			{
+				// See if winning by trump is possible.
+				if(active.has(Game.TRUMP))
+				{
+					if(contested.suit == Game.TRUMP)
+						return active.beat(contested);
+					else
+						return active.lowest(Game.TRUMP);
+				}
+				// Otherwise, throw away the lowest card of any suit.
+				else return active.lowest();
 			}
         }
 		
