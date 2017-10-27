@@ -30,8 +30,8 @@ public class Raptor implements MSWAgent
         DRAW_WINS = false;
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
-        POSITIVE = 0.75;
-        me = "Clever Girl";
+
+        POSITIVE = 0.65;
     }
     
     private String left;
@@ -59,21 +59,23 @@ public class Raptor implements MSWAgent
     public void seeHand(List<Card> deal, int order)
     {
         state = new GameState(order, deal);
-        
-        players.put(me, order);
-        players.put(left, (order+1)%3);
-        players.put(right, (order+2)%3);
+		
+        for(int i = 0; i < 3; i++)
+            players.put(names[i], (order+i)%3);
+		
+		System.out.println("Agent: " + order);
     }
 
     @Override
     public Card[] discard()
     {
-		Card[] chosen = new Card[4];
-		
+        Card[] chosen = new Card[4];
+	
         for(int i = 0; i < 4; i++)
-			chosen[i] = state.discardLow();
-		
-		return chosen;
+        {
+            chosen[i] = state.discardLow();
+        }
+        return chosen;
     }
 	
     @Override
@@ -81,8 +83,8 @@ public class Raptor implements MSWAgent
     {
 	
         Card best = null;
-        long start = System.nanoTime();
-/*       
+        /*long start = System.nanoTime();
+     
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
@@ -97,9 +99,9 @@ public class Raptor implements MSWAgent
         }
         
         for(Card c : results.keySet())
-			if(best == null || results.get(c) > results.get(best))
-				best = c;
-*/        
+            if(best == null || results.get(c) > results.get(best))
+                best = c;
+        */
         
         // Temp version.
         best = state.greedyEval();
@@ -114,10 +116,11 @@ public class Raptor implements MSWAgent
     public void seeResult(String winner)
     {
         // Verify that state is working correctly.
-		if(state.active() != players.get(winner))
-			System.out.println("State judged incorrect winner.");
+        if(state.active() != players.get(winner))
+            System.out.println("State judged incorrect winner.");
         else
             System.out.println("State turn correctly set.");
+
     }
 
     @Override
@@ -128,10 +131,15 @@ public class Raptor implements MSWAgent
         // Verify that state is working properly.
         int[] scores = state.getScores();
         
-        System.out.println("Me: " + scores[players.get(me)]);
-        System.out.println("Left: " + scores[players.get(left)]);
-        System.out.println("Right: " + scores[players.get(right)]);
+        for(String n : names)
+        {
+            if(scores[players.get(n)] != scoreboard.get(n))
+                System.out.println("Score incorrect for " + n + ".");
+
+            System.out.println(n + ": " + scores[players.get(n)]);
+        }
         System.out.println();
+
     }
 
     @Override

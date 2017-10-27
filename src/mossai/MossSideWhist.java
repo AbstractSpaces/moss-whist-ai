@@ -9,14 +9,14 @@ import java.io.*;
 
 public class MossSideWhist
 {
-    private String leader; //the name of the first player
-    private String left; //the name of the second player
-    private String right; //the name of the third player
-    private Map<String, MSWAgent> agents;  //a map from names to players
-    private Map<String, Integer> scoreboard;  //a map from names to scores
-    private Map<String, ArrayList<Card>> hands;  //a map from names to cards
-    private Random rand = new Random();  //using for dealing cards
-    private PrintStream report;  //For debugging. Can show hands and moves of each agent to stdout, 
+    public String leader; //the name of the first player
+    public String left; //the name of the second player
+    public String right; //the name of the third player
+    public Map<String, MSWAgent> agents;  //a map from names to players
+    public Map<String, Integer> scoreboard;  //a map from names to scores
+    public Map<String, ArrayList<Card>> hands;  //a map from names to cards
+    public Random rand = new Random();  //using for dealing cards
+    public PrintStream report;  //For debugging. Can show hands and moves of each agent to stdout, 
     //or can be replaced by a stub to hide the full game state.
 
     /**

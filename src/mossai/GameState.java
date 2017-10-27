@@ -20,7 +20,7 @@ class GameState
     public final Card[] table;
     
     /** Running tally of the scores. */
-    private final int[] scores;
+    public final int[] scores;
     
     /** The beliefs held by the agent and the two simulated opponents. */
     public final BeliefState[] beliefs;
@@ -331,20 +331,20 @@ class GameState
         }
     }
 	
-	/** Function for balancing exploitation and exploration when searching the tree. */
+    /** Function for balancing exploitation and exploration when searching the tree. */
     private double UTC(double parentPT)
     {
         return wins / playthroughs + Raptor.BIAS * Math.sqrt(Math.log(parentPT) / playthroughs);
     }
-	
-	/**
-	 * Returns true if a given player knows they are allowed to play a card
-	 * from a certain suit.
-	 * NOTE: Do not try using this to inform one player about another player's
-	 * hand. Will not work.
-	 */
-	private boolean legal(int p, Suit s)
-	{
-		return p == order[0] || s == table[order[0]].suit || !beliefs[p].otherHas(table[order[0]].suit, pos);
-	}
+
+    /**
+     * Returns true if a given player knows they are allowed to play a card
+     * from a certain suit.
+     * NOTE: Do not try using this to inform one player about another player's
+     * hand. Will not work.
+     */
+    private boolean legal(int p, Suit s)
+    {
+        return p == order[0] || s == table[order[0]].suit || !beliefs[p].otherHas(table[order[0]].suit, pos);
+    }
  }
