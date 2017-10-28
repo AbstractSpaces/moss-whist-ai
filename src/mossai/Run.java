@@ -17,7 +17,7 @@ public class Run
     {
         String friendlyAI = "Clever Girl";
         int friendlyWins = 0;
-        int games = 2;
+        int games = 1;
         for(int i = 0; i < games; i ++)
         {
             MossSideWhist game = new MossSideWhist(new RandomAgent(), new Raptor(), new RandomAgent());

@@ -218,6 +218,9 @@ class GameState
     /** Move the state forward by one turn. */
     void advance(Card played)
     {
+/////////////////////////////// DEBUGGING //////////////////////////////////////
+		System.out.println("Pre advance, active is pos " + turn);
+////////////////////////////////////////////////////////////////////////////////
         for(BeliefState b : beliefs)
             b.cardPlayed(played, turn, table[order[0]]);
 		
@@ -243,6 +246,9 @@ class GameState
             order[1] = left();
             order[2] = right();
         }
+/////////////////////////////// DEBUGGING //////////////////////////////////////
+		System.out.println("Post advance, active is pos " + turn);
+////////////////////////////////////////////////////////////////////////////////
     }
 	
 	/** Return the player to the left of (next in the order) of the active. */
