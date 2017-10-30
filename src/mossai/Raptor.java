@@ -30,7 +30,7 @@ public class Raptor implements MSWAgent
         DRAW_WINS = false;
         SEARCH_TIME = 190;
         MC_SAMPLES = 10;
-        POSITIVE = 0.75;
+        POSITIVE = 0.5;
         ME = "Clever Girl";
     }
     
@@ -104,7 +104,7 @@ public class Raptor implements MSWAgent
 	
         Card best = null;
         long start = System.nanoTime();
-/*     
+     
         // A record of how many times each card was recommended by a Monte Carlo search.
         HashMap<Card, Integer> results = new HashMap();
         
@@ -120,11 +120,10 @@ public class Raptor implements MSWAgent
         
         for(Card c : results.keySet())
             if(best == null || results.get(c) > results.get(best))
-                best = c;
-*/        
+                best = c;      
         
         // Temp version.
-        best = state.greedyEval();
+//        best = state.greedyEval();
         
         return best;
     }
@@ -133,10 +132,10 @@ public class Raptor implements MSWAgent
     public void seeCard(Card card, String agent)
 	{
 /////////////////////////////// DEBUGGING //////////////////////////////////////
-		System.out.println("seeCard given move by: " + agent);
-		System.out.println(agent + " order set " + positions.get(agent) + " in Raptor.");
-		if(positions.get(agent) != state.active())
-			System.out.println("BIG OBVIOUS PRINT THAT IS EASY TO SEE");
+//		System.out.println("seeCard given move by: " + agent);
+//		System.out.println(agent + " order set " + positions.get(agent) + " in Raptor.");
+//		if(positions.get(agent) != state.active())
+//			System.out.println("BIG OBVIOUS PRINT THAT IS EASY TO SEE");
 ////////////////////////////////////////////////////////////////////////////////
 		state.advance(card);
 	}
@@ -154,22 +153,22 @@ public class Raptor implements MSWAgent
     public void seeScore(Map<String, Integer> scoreboard)
     {
 /////////////////////////////// DEBUGGING //////////////////////////////////////
-		System.out.println();
-		
-		System.out.println("Hand scores in Raptor:");
-		for(int i : handScores)
-			System.out.println(i);
-		
-		System.out.println();
-		
-		System.out.println("Hand scores in GameState:");
-			int[] gsScores = state.getScores();
-			for(int i : gsScores)
-				System.out.println(i);
-		
-		System.out.println();
-		for(String p : totalScores.keySet())
-			System.out.println(p + " score in Raptor: " + totalScores.get(p));
+//		System.out.println();
+//		
+//		System.out.println("Hand scores in Raptor:");
+//		for(int i : handScores)
+//			System.out.println(i);
+//		
+//		System.out.println();
+//		
+//		System.out.println("Hand scores in GameState:");
+//			int[] gsScores = state.getScores();
+//			for(int i : gsScores)
+//				System.out.println(i);
+//		
+//		System.out.println();
+//		for(String p : totalScores.keySet())
+//			System.out.println(p + " score in Raptor: " + totalScores.get(p));
 ////////////////////////////////////////////////////////////////////////////////
     }
 

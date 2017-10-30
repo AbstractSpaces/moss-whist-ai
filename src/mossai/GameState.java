@@ -11,16 +11,19 @@ class GameState
     public static int pos;
     
     /** The indices of players in their turn order for this trick. */
-    public int[] order;
+    private int[] order;
     
     /** The player currently taking their turn, having not yet played their card. */
     private int turn;
     
     /** The cards so far played by each player this trick. */
-    public final Card[] table;
+    private Card[] table;
     
     /** Running tally of the scores. */
-    public final int[] scores;
+    private int[] scores;
+	
+	/** The number of tricks completed this hand. */
+	private int tricks;
     
     /** The beliefs held by the agent and the two simulated opponents. */
     public final BeliefState[] beliefs;
@@ -42,6 +45,7 @@ class GameState
         turn = 0;
         table = new Card[3];
         scores = new int[] {-8, -4, -4};
+		tricks = 0;
         
         // Convert the hand into an integer array.
         int[] hand = new int[Game.DECK_SIZE];
@@ -67,6 +71,7 @@ class GameState
         turn = old.turn;
         table = Arrays.copyOf(old.table, 3);
         scores = Arrays.copyOf(old.scores, 3);
+		tricks = old.tricks;
         
         beliefs = new BeliefState[3];
         beliefs[pos] = new BeliefState(old.beliefs[pos]);
@@ -219,7 +224,7 @@ class GameState
     void advance(Card played)
     {
 /////////////////////////////// DEBUGGING //////////////////////////////////////
-		System.out.println("Pre advance, active is pos " + turn);
+//		System.out.println("Pre advance, active is pos " + turn);
 ////////////////////////////////////////////////////////////////////////////////
         for(BeliefState b : beliefs)
             b.cardPlayed(played, turn, table[order[0]]);
@@ -230,6 +235,7 @@ class GameState
         // If trick over, update score, clear table, set order. 
         if(turn == order[0])
         {
+			tricks++;
             int win = order[0];
             
             for(int i = 1; i < 3; i++)
@@ -247,7 +253,7 @@ class GameState
             order[2] = right();
         }
 /////////////////////////////// DEBUGGING //////////////////////////////////////
-		System.out.println("Post advance, active is pos " + turn);
+//		System.out.println("Post advance, active is pos " + turn);
 ////////////////////////////////////////////////////////////////////////////////
     }
 	
@@ -275,21 +281,24 @@ class GameState
             for(Suit s : Suit.values())
             {
                 // If the agent is allowed to play from this suit.
-                if(legal(pos, s))
+                if(legal(s))
                 {
                     for(int i = Game.suitBegins(s); i <= Game.suitEnds(s); i++)
                     {
-                        // If the agent otherHas this card.
-                        if(beliefs[pos].otherHas(Game.intToCard(i), pos))
+                        // If the agent has this card.
+                        if(beliefs[pos].has(Game.intToCard(i)))
                         {
                             // Simulate a legal move.
                             GameState child = new GameState(this, false);
                             child.advance(Game.intToCard(i));
 
                             // Simulate predicted opponent moves.
-                            while(child.turn != pos)
+                            while(child.turn != pos && child.tricks < Game.DEAL)
                             {
                                 Card toPlay = child.greedyEval();
+/////////////////////////////// DEBUGGING //////////////////////////////////////
+								System.out.println("Simulating move by " + child.turn + ": " + toPlay);
+////////////////////////////////////////////////////////////////////////////////
                                 child.advance(toPlay);
                             }
 
@@ -305,7 +314,7 @@ class GameState
     private boolean playOut()
     {   
         // Game over, roll back up the tree.
-        if(children.isEmpty())
+        if(tricks == Game.DEAL)
         {
             // See if the agent won the game.
             if(Raptor.DRAW_WINS) return scores[pos] >= scores[(pos+1)%3] && scores[pos] >= scores[(pos+2)%3];
@@ -346,14 +355,9 @@ class GameState
         return wins / playthroughs + Raptor.BIAS * Math.sqrt(Math.log(parentPT) / playthroughs);
     }
 
-    /**
-     * Returns true if a given player knows they are allowed to play a card
-     * from a certain suit.
-     * NOTE: Do not try using this to inform one player about another player's
-     * hand. Will not work.
-     */
-    private boolean legal(int p, Suit s)
+    /** Returns true if the agent can play a card from a certain suit. */
+    private boolean legal(Suit s)
     {
-        return p == order[0] || s == table[order[0]].suit || !beliefs[p].otherHas(table[order[0]].suit, pos);
+        return pos == order[0] || s == table[order[0]].suit || !beliefs[pos].has(table[order[0]].suit);
     }
  }
